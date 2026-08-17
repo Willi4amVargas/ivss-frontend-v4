@@ -3,6 +3,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import { Diagnosis } from './diagnosis.model';
+import { Patient } from './patient.model';
 
 // ── Admission ─────────────────────────────────────────────────────────────────
 
@@ -17,6 +18,7 @@ export interface Admission {
   admission_diagnosis: Diagnosis[];
   evolutions?: Evolution[];
   discharge?: Discharge;
+  patient: Patient;
   created_at: Date;
   updated_at: Date;
 }
@@ -62,6 +64,7 @@ export interface Discharge {
   morbility_status?: boolean;
   treatment_plan?: string;
   discharges_diagnosis: Diagnosis[];
+  admission?: Admission;
 }
 
 export interface CreateDischargeDto {

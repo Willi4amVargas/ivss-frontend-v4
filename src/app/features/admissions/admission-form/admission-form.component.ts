@@ -1,11 +1,4 @@
-import {
-  Component,
-  OnInit,
-  OnDestroy,
-  inject,
-  signal,
-  computed,
-} from '@angular/core';
+import { Component, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import {
   FormBuilder,
   FormGroup,
@@ -15,21 +8,33 @@ import {
   AbstractControl,
 } from '@angular/forms';
 import { Router, ActivatedRoute } from '@angular/router';
-import { Subject, debounceTime, distinctUntilChanged, switchMap, of, takeUntil } from 'rxjs';
+import {
+  Subject,
+  debounceTime,
+  distinctUntilChanged,
+  switchMap,
+  of,
+  takeUntil,
+  finalize,
+} from 'rxjs';
 import { AdmissionsService } from '../../../core/services/clinical-records.service';
 import { DiagnosticsService } from '../../../core/services/diagnostics.service';
+import { PatientsService } from '../../../core/services/patients.service';
 import {
   Admission,
   CreateAdmissionDto,
   Diagnosis,
   DiagnosisSearchResult,
+  Patient,
 } from '../../../core/models';
 
 // ── Validator: min-length for FormArrays ─────────────────────────────────────
 function minLengthArray(min: number) {
   return (control: AbstractControl) => {
     const arr = control as FormArray;
-    return arr.length >= min ? null : { minLengthArray: { requiredLength: min, actualLength: arr.length } };
+    return arr.length >= min
+      ? null
+      : { minLengthArray: { requiredLength: min, actualLength: arr.length } };
   };
 }
 
@@ -38,7 +43,6 @@ function minLengthArray(min: number) {
   imports: [ReactiveFormsModule],
   template: `
     <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
-
       <!-- Page Header -->
       <div class="mb-8 flex items-center gap-4">
         <button
@@ -47,7 +51,15 @@ function minLengthArray(min: number) {
           class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
           aria-label="Volver atrás"
         >
-          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+            aria-hidden="true"
+          >
             <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
           </svg>
           Volver
@@ -57,7 +69,11 @@ function minLengthArray(min: number) {
             {{ isEditMode() ? 'Editar Admisión' : 'Nueva Admisión' }}
           </h1>
           <p class="mt-0.5 text-sm text-slate-500">
-            {{ isEditMode() ? 'Modifica los datos de la admisión' : 'Registra una nueva admisión hospitalaria' }}
+            {{
+              isEditMode()
+                ? 'Modifica los datos de la admisión'
+                : 'Registra una nueva admisión hospitalaria'
+            }}
           </p>
         </div>
       </div>
@@ -65,7 +81,7 @@ function minLengthArray(min: number) {
       <!-- Loading skeleton for edit mode -->
       @if (isLoadingAdmission()) {
         <div class="space-y-6" role="status" aria-label="Cargando admisión">
-          @for (_ of [1,2,3]; track $index) {
+          @for (_ of [1, 2, 3]; track $index) {
             <div class="rounded-xl bg-white p-6 shadow-sm border border-slate-200">
               <div class="mb-4 h-5 w-40 animate-pulse rounded bg-slate-200"></div>
               <div class="space-y-3">
@@ -94,40 +110,164 @@ function minLengthArray(min: number) {
           class="space-y-6"
           aria-label="Formulario de admisión"
         >
-
           <!-- ─── Section: Datos generales ──────────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-general">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-general"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-general" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/>
+              <h2
+                id="section-general"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
                 </svg>
                 Datos Generales
               </h2>
             </div>
-            <div class="grid grid-cols-1 gap-5 p-6 sm:grid-cols-2">
-              <!-- Patient ID -->
-              <div class="flex flex-col gap-1.5">
-                <label for="patient_id" class="text-sm font-medium text-slate-700">
-                  ID del Paciente <span class="text-red-500" aria-hidden="true">*</span>
+            <div class="grid grid-cols-1 gap-6 p-6 sm:grid-cols-2">
+              <!-- Patient Interactive Search -->
+              <div class="flex flex-col gap-1.5" id="patient-search-container">
+                <label class="text-sm font-medium text-slate-700">
+                  Paciente <span class="text-red-500" aria-hidden="true">*</span>
                 </label>
-                <input
-                  id="patient_id"
-                  type="text"
-                  formControlName="patient_id"
-                  placeholder="UUID del paciente"
-                  autocomplete="off"
-                  class="rounded-lg border px-3 py-2.5 text-sm text-slate-800 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
-                  [class.border-slate-300]="!isFieldInvalid('patient_id')"
-                  [class.border-red-400]="isFieldInvalid('patient_id')"
-                  [class.bg-red-50]="isFieldInvalid('patient_id')"
-                  aria-required="true"
-                  [attr.aria-invalid]="isFieldInvalid('patient_id')"
-                  aria-describedby="patient_id-error"
-                />
+
+                @if (selectedPatient(); as patient) {
+                  <!-- Selected Patient Pill -->
+                  <div
+                    class="mt-0.5 flex items-center justify-between rounded-lg border border-blue-200 bg-blue-50 px-3 py-2.5"
+                  >
+                    <div class="flex items-center gap-3">
+                      <div
+                        class="flex h-8 w-8 items-center justify-center rounded-full bg-blue-100 text-blue-600"
+                      >
+                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            stroke-width="2"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                      </div>
+                      <div>
+                        <p class="text-sm font-semibold text-slate-800">
+                          {{ patient.names }} {{ patient.lastnames }}
+                        </p>
+                        <p class="text-xs text-slate-500 font-mono mt-0.5">
+                          CI: {{ patient.document_id }}
+                        </p>
+                        @if (patient.history_numbers) {
+                          <p class="text-xs text-slate-500 font-mono mt-0.5">
+                            HN: {{ patient.history_numbers.join(', ') }}
+                          </p>
+                        }
+                      </div>
+                    </div>
+                    @if (!isEditMode()) {
+                      <button
+                        type="button"
+                        (click)="clearSelectedPatient()"
+                        class="text-blue-500 hover:text-blue-700 p-1.5 rounded-md hover:bg-blue-100 transition focus:outline-none focus:ring-2 focus:ring-blue-400"
+                        aria-label="Cambiar paciente"
+                      >
+                        <svg
+                          class="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
+                    }
+                  </div>
+                } @else {
+                  <!-- Search Patient Input -->
+                  <div class="relative mt-0.5">
+                    <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
+                      <svg
+                        class="h-4 w-4 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
+                      </svg>
+                    </div>
+                    <input
+                      type="text"
+                      [value]="patientSearchQuery()"
+                      (input)="onPatientSearchInput($event)"
+                      (focus)="showPatientDropdown.set(true)"
+                      placeholder="Buscar por nombre, cédula o número de historia..."
+                      class="w-full rounded-lg border py-2.5 pl-9 pr-3 text-sm text-slate-800 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
+                      [class.border-slate-300]="!isFieldInvalid('patient_id')"
+                      [class.border-red-400]="isFieldInvalid('patient_id')"
+                    />
+
+                    @if (showPatientDropdown()) {
+                      <ul
+                        class="absolute z-40 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                      >
+                        @for (p of filteredPatients(); track p.id) {
+                          <li>
+                            <button
+                              type="button"
+                              (click)="selectPatient(p)"
+                              class="flex w-full flex-col px-4 py-2.5 text-left transition hover:bg-slate-50 focus:bg-slate-50 focus:outline-none"
+                            >
+                              <span class="text-sm font-medium text-slate-800"
+                                >{{ p.names }} {{ p.lastnames }}</span
+                              >
+                              <div class="flex justify-between">
+                                <span class="mt-0.5 text-xs font-mono text-slate-500"
+                                  >CI: {{ p.document_id }}</span
+                                >
+                                <span class="mt-0.5 text-xs font-mono text-slate-500"
+                                  >HN: {{ p.history_numbers.join(', ') }}</span
+                                >
+                              </div>
+                            </button>
+                          </li>
+                        }
+                        @if (filteredPatients().length === 0) {
+                          <li class="px-4 py-3 text-sm text-slate-500">
+                            No se encontraron pacientes.
+                          </li>
+                        }
+                      </ul>
+                    }
+                  </div>
+                }
+
+                <input type="hidden" formControlName="patient_id" />
                 @if (isFieldInvalid('patient_id')) {
-                  <p id="patient_id-error" class="text-xs text-red-600" role="alert">
-                    El ID del paciente es requerido.
+                  <p class="text-xs text-red-600" role="alert">
+                    Debe seleccionar un paciente para la admisión.
                   </p>
                 }
               </div>
@@ -141,18 +281,36 @@ function minLengthArray(min: number) {
                   id="admission_date"
                   type="datetime-local"
                   formControlName="admission_date"
-                  class="rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 transition focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
+                  class="mt-0.5 rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-800 transition focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                 />
               </div>
             </div>
           </section>
 
           <!-- ─── Section: Motivo de Consulta ──────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-consult">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-consult"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-consult" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"/>
+              <h2
+                id="section-consult"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-3 3-3-3z"
+                  />
                 </svg>
                 Motivo de Consulta
                 <span class="ml-auto text-xs font-normal text-slate-400">(mínimo 1)</span>
@@ -178,8 +336,20 @@ function minLengthArray(min: number) {
                       class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
                       [attr.aria-label]="'Eliminar motivo ' + ($index + 1)"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   }
@@ -190,30 +360,62 @@ function minLengthArray(min: number) {
                 (click)="addConsultReason()"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-slate-500 transition hover:border-[#1e3a5f] hover:text-[#1e3a5f] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 Agregar motivo
               </button>
               @if (submitted() && consultReasonArray.invalid) {
-                <p class="text-xs text-red-600" role="alert">Se requiere al menos un motivo de consulta.</p>
+                <p class="text-xs text-red-600" role="alert">
+                  Se requiere al menos un motivo de consulta.
+                </p>
               }
             </div>
           </section>
 
           <!-- ─── Section: Condición Actual ────────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-condition">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-condition"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-condition" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+              <h2
+                id="section-condition"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+                  />
                 </svg>
                 Condición Actual
               </h2>
             </div>
             <div class="p-6">
-              <label for="current_condition" class="mb-1.5 block text-sm font-medium text-slate-700">
-                Descripción de la condición actual <span class="text-red-500" aria-hidden="true">*</span>
+              <label
+                for="current_condition"
+                class="mb-1.5 block text-sm font-medium text-slate-700"
+              >
+                Descripción de la condición actual
+                <span class="text-red-500" aria-hidden="true">*</span>
               </label>
               <textarea
                 id="current_condition"
@@ -236,11 +438,29 @@ function minLengthArray(min: number) {
           </section>
 
           <!-- ─── Section: Antecedentes ────────────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-background">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-background"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-background" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              <h2
+                id="section-background"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 Antecedentes
                 <span class="ml-auto text-xs font-normal text-slate-400">(mínimo 1)</span>
@@ -266,8 +486,20 @@ function minLengthArray(min: number) {
                       class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-slate-400 transition hover:bg-red-50 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
                       [attr.aria-label]="'Eliminar antecedente ' + ($index + 1)"
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M6 18L18 6M6 6l12 12"
+                        />
                       </svg>
                     </button>
                   }
@@ -278,23 +510,51 @@ function minLengthArray(min: number) {
                 (click)="addBackground()"
                 class="inline-flex items-center gap-1.5 rounded-lg border border-dashed border-slate-300 px-3 py-2 text-xs font-medium text-slate-500 transition hover:border-[#1e3a5f] hover:text-[#1e3a5f] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
               >
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3.5 w-3.5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4" />
                 </svg>
                 Agregar antecedente
               </button>
               @if (submitted() && backgroundArray.invalid) {
-                <p class="text-xs text-red-600" role="alert">Se requiere al menos un antecedente.</p>
+                <p class="text-xs text-red-600" role="alert">
+                  Se requiere al menos un antecedente.
+                </p>
               }
             </div>
           </section>
 
           <!-- ─── Section: Examen de Admisión ──────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-exam">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-exam"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-exam" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+              <h2
+                id="section-exam"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                  />
                 </svg>
                 Examen de Admisión
               </h2>
@@ -324,33 +584,78 @@ function minLengthArray(min: number) {
           </section>
 
           <!-- ─── Section: Diagnósticos ─────────────────────────────────────── -->
-          <section class="rounded-xl border border-slate-200 bg-white shadow-sm" aria-labelledby="section-diagnoses">
+          <section
+            class="rounded-xl border border-slate-200 bg-white shadow-sm"
+            aria-labelledby="section-diagnoses"
+          >
             <div class="border-b border-slate-100 px-6 py-4">
-              <h2 id="section-diagnoses" class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+              <h2
+                id="section-diagnoses"
+                class="flex items-center gap-2 text-base font-semibold text-[#1e3a5f]"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
                 </svg>
-                Diagnósticos CIE-11
+                Diagnósticos
                 <span class="ml-auto text-xs font-normal text-slate-400">(mínimo 1)</span>
               </h2>
             </div>
             <div class="p-6 space-y-4">
-
               <!-- Diagnosis Search -->
-              <div class="relative">
-                <label for="diagnosis-search" class="mb-1.5 block text-sm font-medium text-slate-700">
-                  Buscar diagnóstico CIE-11
+              <div class="relative" id="diagnosis-search-container">
+                <label
+                  for="diagnosis-search"
+                  class="mb-1.5 block text-sm font-medium text-slate-700"
+                >
+                  Añadir diagnóstico (Búsqueda CIE-11 o Texto Libre)
                 </label>
                 <div class="relative">
                   <div class="pointer-events-none absolute inset-y-0 left-3 flex items-center">
                     @if (isSearching()) {
-                      <svg class="h-4 w-4 animate-spin text-slate-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                      <svg
+                        class="h-4 w-4 animate-spin text-slate-400"
+                        xmlns="http://www.w3.org/2000/svg"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        aria-hidden="true"
+                      >
+                        <circle
+                          class="opacity-25"
+                          cx="12"
+                          cy="12"
+                          r="10"
+                          stroke="currentColor"
+                          stroke-width="4"
+                        />
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                       </svg>
                     } @else {
-                      <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                        <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-4 w-4 text-slate-400"
+                        fill="none"
+                        viewBox="0 0 24 24"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        aria-hidden="true"
+                      >
+                        <path
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                        />
                       </svg>
                     }
                   </div>
@@ -360,24 +665,56 @@ function minLengthArray(min: number) {
                     [value]="searchQuery()"
                     (input)="onSearchInput($event)"
                     (focus)="showDropdown.set(true)"
-                    placeholder="Escriba para buscar (ej. hipertensión, diabetes...)"
+                    (keydown.enter)="$event.preventDefault(); addCustomDiagnosis()"
+                    placeholder="Escriba para buscar o agregue texto libre..."
                     class="w-full rounded-lg border border-slate-300 py-2.5 pl-9 pr-3 text-sm text-slate-800 placeholder-slate-400 transition focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
                     role="combobox"
                     aria-haspopup="listbox"
-                    [attr.aria-expanded]="showDropdown() && searchResults().length > 0"
+                    [attr.aria-expanded]="showDropdown()"
                     aria-autocomplete="list"
                     aria-controls="diagnosis-dropdown"
                   />
                 </div>
 
                 <!-- Search Results Dropdown -->
-                @if (showDropdown() && searchResults().length > 0) {
+                @if (showDropdown() && searchQuery().trim().length > 0) {
                   <ul
                     id="diagnosis-dropdown"
                     role="listbox"
-                    aria-label="Resultados de búsqueda CIE-11"
-                    class="absolute z-30 mt-1 max-h-56 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg"
+                    aria-label="Resultados de búsqueda diagnósticos"
+                    class="absolute z-30 mt-1 max-h-60 w-full overflow-auto rounded-lg border border-slate-200 bg-white shadow-lg divide-y divide-slate-100"
                   >
+                    <!-- Custom Text Option -->
+                    <li role="option" [attr.aria-selected]="false">
+                      <button
+                        type="button"
+                        (click)="addCustomDiagnosis()"
+                        class="flex w-full items-center gap-3 px-4 py-3 text-left text-sm transition hover:bg-emerald-50 focus:outline-none focus:bg-emerald-50"
+                      >
+                        <span
+                          class="flex h-6 w-6 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"
+                        >
+                          <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M12 4v16m8-8H4"
+                            />
+                          </svg>
+                        </span>
+                        <span class="text-emerald-700 font-medium"
+                          >Añadir "{{ searchQuery() }}" como texto libre</span
+                        >
+                      </button>
+                    </li>
+
+                    <!-- Search Results -->
                     @for (result of searchResults(); track result.code) {
                       <li role="option" [attr.aria-selected]="false">
                         <button
@@ -385,27 +722,31 @@ function minLengthArray(min: number) {
                           (click)="selectDiagnosis(result)"
                           class="flex w-full items-start gap-3 px-4 py-3 text-left text-sm transition hover:bg-blue-50 focus:outline-none focus:bg-blue-50"
                         >
-                          <span class="mt-0.5 flex-shrink-0 rounded bg-[#1e3a5f]/10 px-1.5 py-0.5 font-mono text-xs font-semibold text-[#1e3a5f]">
+                          <span
+                            class="mt-0.5 flex-shrink-0 rounded bg-[#1e3a5f]/10 px-1.5 py-0.5 font-mono text-xs font-semibold text-[#1e3a5f]"
+                          >
                             {{ result.code }}
                           </span>
                           <span class="text-slate-700">{{ result.title }}</span>
                         </button>
                       </li>
                     }
-                  </ul>
-                }
 
-                <!-- No results -->
-                @if (showDropdown() && searchQuery().length >= 2 && !isSearching() && searchResults().length === 0) {
-                  <div class="absolute z-30 mt-1 w-full rounded-lg border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500 shadow-lg">
-                    No se encontraron diagnósticos para "{{ searchQuery() }}"
-                  </div>
+                    <!-- No results message -->
+                    @if (!isSearching() && searchResults().length === 0) {
+                      <li class="px-4 py-3 text-sm text-slate-500 italic">
+                        No se encontraron resultados en CIE-11.
+                      </li>
+                    }
+                  </ul>
                 }
               </div>
 
               <!-- Selected Diagnoses -->
               @if (diagnosesArray.length === 0) {
-                <div class="rounded-lg border-2 border-dashed border-slate-200 py-8 text-center text-sm text-slate-400">
+                <div
+                  class="rounded-lg border-2 border-dashed border-slate-200 py-8 text-center text-sm"
+                >
                   Sin diagnósticos seleccionados. Busque y seleccione al menos uno.
                 </div>
               } @else {
@@ -417,10 +758,16 @@ function minLengthArray(min: number) {
                     >
                       <div class="mb-3 flex items-start justify-between gap-3">
                         <div class="flex items-center gap-2">
-                          <span class="rounded bg-[#1e3a5f] px-2 py-0.5 font-mono text-xs font-semibold text-white">
+                          <span
+                            class="rounded px-2 py-0.5 text-xs font-semibold text-white"
+                            [class.bg-[#1e3a5f]]="diagCtrl.get('code')?.value !== 'TXT'"
+                            /* [class.text-white]="diagCtrl.get('code')?.value !== 'TXT'" */
+                            [class.bg-emerald-600]="diagCtrl.get('code')?.value === 'TXT'"
+                            /* [class.text-white]="diagCtrl.get('code')?.value === 'TXT'" */
+                          >
                             {{ diagCtrl.get('code')?.value }}
                           </span>
-                          <span class="text-sm font-medium text-slate-800">
+                          <span class="text-sm font-medium">
                             {{ diagCtrl.get('title')?.value }}
                           </span>
                         </div>
@@ -428,10 +775,23 @@ function minLengthArray(min: number) {
                           type="button"
                           (click)="removeDiagnosis($index)"
                           class="flex-shrink-0 rounded-md p-1 text-slate-400 transition hover:bg-red-100 hover:text-red-500 focus:outline-none focus:ring-2 focus:ring-red-400"
-                          [attr.aria-label]="'Eliminar diagnóstico ' + diagCtrl.get('code')?.value"
+                          [attr.aria-label]="'Eliminar diagnóstico ' + diagCtrl.get('title')?.value"
+                          [disabled]="deletingDiagnosis()"
                         >
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M6 18L18 6M6 6l12 12"
+                            />
                           </svg>
                         </button>
                       </div>
@@ -440,7 +800,10 @@ function minLengthArray(min: number) {
                       <input type="hidden" formControlName="title" />
                       <!-- Optional description -->
                       <div class="flex flex-col gap-1">
-                        <label [for]="'diag-desc-' + $index" class="text-xs font-medium text-slate-500">
+                        <label
+                          [for]="'diag-desc-' + $index"
+                          class="text-xs font-medium text-slate-500"
+                        >
                           Descripción clínica (opcional)
                         </label>
                         <textarea
@@ -457,13 +820,17 @@ function minLengthArray(min: number) {
               }
 
               @if (submitted() && diagnosesArray.length === 0) {
-                <p class="text-xs text-red-600" role="alert">Se requiere al menos un diagnóstico.</p>
+                <p class="text-xs text-red-600" role="alert">
+                  Se requiere al menos un diagnóstico.
+                </p>
               }
             </div>
           </section>
 
           <!-- ─── Submit / Cancel ───────────────────────────────────────────── -->
-          <div class="flex items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white px-6 py-4 shadow-sm">
+          <div
+            class="flex items-center justify-end gap-3 rounded-xl border border-slate-200 bg-white px-6 py-4 shadow-sm"
+          >
             @if (submitError()) {
               <p class="mr-auto text-sm text-red-600" role="alert">{{ submitError() }}</p>
             }
@@ -480,14 +847,35 @@ function minLengthArray(min: number) {
               class="inline-flex items-center gap-2 rounded-lg bg-[#1e3a5f] px-6 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#16304f] disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-2"
             >
               @if (isSubmitting()) {
-                <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                <svg
+                  class="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
                 </svg>
                 {{ isEditMode() ? 'Guardando…' : 'Creando…' }}
               } @else {
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7" />
                 </svg>
                 {{ isEditMode() ? 'Guardar Cambios' : 'Registrar Admisión' }}
               }
@@ -504,6 +892,8 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   private readonly route = inject(ActivatedRoute);
   private readonly admissionsService = inject(AdmissionsService);
   private readonly diagnosticsService = inject(DiagnosticsService);
+  private readonly patientsService = inject(PatientsService);
+
   private readonly destroy$ = new Subject<void>();
   private readonly searchSubject = new Subject<string>();
 
@@ -515,8 +905,15 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   readonly isSubmitting = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly submitted = signal(false);
+  readonly deletingDiagnosis = signal(false);
 
-  // Diagnosis search
+  // Patient search state
+  readonly allPatients = signal<Patient[]>([]);
+  readonly patientSearchQuery = signal('');
+  readonly showPatientDropdown = signal(false);
+  readonly selectedPatient = signal<Patient | null>(null);
+
+  // Diagnosis search state
   readonly searchQuery = signal('');
   readonly searchResults = signal<DiagnosisSearchResult[]>([]);
   readonly isSearching = signal(false);
@@ -526,15 +923,9 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   readonly form: FormGroup = this.fb.group({
     patient_id: ['', [Validators.required, Validators.minLength(1)]],
     admission_date: [''],
-    consult_reason: this.fb.array(
-      [this.fb.control('', Validators.required)],
-      [minLengthArray(1)],
-    ),
+    consult_reason: this.fb.array([this.fb.control('', Validators.required)], [minLengthArray(1)]),
     current_condition: ['', Validators.required],
-    background: this.fb.array(
-      [this.fb.control('', Validators.required)],
-      [minLengthArray(1)],
-    ),
+    background: this.fb.array([this.fb.control('', Validators.required)], [minLengthArray(1)]),
     admission_exam: ['', Validators.required],
     diagnoses: this.fb.array([]),
   });
@@ -551,9 +942,27 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
     return this.form.get('diagnoses') as FormArray;
   }
 
+  // ── Computeds ─────────────────────────────────────────────────────────────
+  readonly filteredPatients = computed(() => {
+    const q = this.patientSearchQuery().trim().toLowerCase();
+    const all = this.allPatients();
+
+    if (!q) return all.slice(0, 20); // Show max 20 initially to avoid massive dropdowns
+
+    return all
+      .filter((p) => {
+        const fullName = `${p.names} ${p.lastnames}`.toLowerCase();
+        const documentId = p.document_id.toLowerCase();
+        const matchesHistory = p.history_numbers?.some((hn) => hn.toLowerCase().includes(q));
+        return fullName.includes(q) || documentId.includes(q) || matchesHistory;
+      })
+      .slice(0, 20);
+  });
+
   // ── Lifecycle ─────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.setupSearchDebounce();
+    this.loadAllPatients();
 
     const id = this.route.snapshot.paramMap.get('id');
     const patientQp = this.route.snapshot.queryParamMap.get('patient_id');
@@ -563,13 +972,19 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
       this.admissionId.set(id);
       this.loadAdmission(id);
     } else {
-      // Pre-fill patient_id from query param if navigated from patient detail
+      // Pre-fill patient from query param if navigated from patient detail
       if (patientQp) {
         this.form.get('patient_id')?.setValue(patientQp);
+        this.patientsService
+          .getById(patientQp)
+          .pipe(takeUntil(this.destroy$))
+          .subscribe((p) => {
+            this.selectedPatient.set(p);
+          });
       }
     }
 
-    // Close dropdown on outside click
+    // Close dropdowns on outside click
     document.addEventListener('click', this.handleOutsideClick);
   }
 
@@ -581,36 +996,71 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
 
   private readonly handleOutsideClick = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
-    if (!target.closest('[aria-controls="diagnosis-dropdown"]') && !target.closest('#diagnosis-dropdown')) {
+    if (!target.closest('#diagnosis-search-container')) {
       this.showDropdown.set(false);
+    }
+    if (!target.closest('#patient-search-container')) {
+      this.showPatientDropdown.set(false);
     }
   };
 
-  // ── Setup search debounce ─────────────────────────────────────────────────
+  // ── Patient Selection ─────────────────────────────────────────────────────
+  private loadAllPatients(): void {
+    this.patientsService
+      .getAll()
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((patients) => {
+        this.allPatients.set(patients);
+      });
+  }
+
+  onPatientSearchInput(event: Event): void {
+    const q = (event.target as HTMLInputElement).value;
+    this.patientSearchQuery.set(q);
+    this.showPatientDropdown.set(true);
+  }
+
+  selectPatient(p: Patient): void {
+    this.selectedPatient.set(p);
+    this.form.get('patient_id')?.setValue(p.id);
+    this.patientSearchQuery.set('');
+    this.showPatientDropdown.set(false);
+  }
+
+  clearSelectedPatient(): void {
+    this.selectedPatient.set(null);
+    this.form.get('patient_id')?.setValue('');
+    this.patientSearchQuery.set('');
+    // Focus automatically on clearing (optional UX enhancement but tricky in raw angular without ViewChild)
+  }
+
+  // ── Setup diagnosis search debounce ───────────────────────────────────────
   private setupSearchDebounce(): void {
-    this.searchSubject.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((query) => {
-        if (query.length < 2) {
+    this.searchSubject
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((query) => {
+          if (query.length < 2) {
+            this.searchResults.set([]);
+            this.isSearching.set(false);
+            return of([]);
+          }
+          this.isSearching.set(true);
+          return this.diagnosticsService.search(query);
+        }),
+        takeUntil(this.destroy$),
+      )
+      .subscribe({
+        next: (results) => {
+          this.searchResults.set(results);
+          this.isSearching.set(false);
+        },
+        error: () => {
           this.searchResults.set([]);
           this.isSearching.set(false);
-          return of([]);
-        }
-        this.isSearching.set(true);
-        return this.diagnosticsService.search(query);
-      }),
-      takeUntil(this.destroy$),
-    ).subscribe({
-      next: (results) => {
-        this.searchResults.set(results);
-        this.isSearching.set(false);
-      },
-      error: () => {
-        this.searchResults.set([]);
-        this.isSearching.set(false);
-      },
-    });
+        },
+      });
   }
 
   // ── Load admission for edit ───────────────────────────────────────────────
@@ -618,16 +1068,22 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
     this.isLoadingAdmission.set(true);
     this.loadError.set(null);
 
-    this.admissionsService.getById(id).pipe(takeUntil(this.destroy$)).subscribe({
-      next: (admission) => {
-        this.populateForm(admission);
-        this.isLoadingAdmission.set(false);
-      },
-      error: (err: Error) => {
-        this.loadError.set(err?.message ?? 'Error al cargar la admisión');
-        this.isLoadingAdmission.set(false);
-      },
-    });
+    this.admissionsService
+      .getById(id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (admission) => {
+          this.populateForm(admission);
+          if (admission.patient) {
+            this.selectedPatient.set(admission.patient);
+          }
+          this.isLoadingAdmission.set(false);
+        },
+        error: (err: Error) => {
+          this.loadError.set(err?.message ?? 'Error al cargar la admisión');
+          this.isLoadingAdmission.set(false);
+        },
+      });
   }
 
   private populateForm(admission: Admission): void {
@@ -638,9 +1094,7 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
 
     this.form.patchValue({
       patient_id: admission.patient_id,
-      admission_date: admission.admission_date
-        ? admission.admission_date.slice(0, 16)
-        : '',
+      admission_date: admission.admission_date ? admission.admission_date.slice(0, 16) : '',
       current_condition: admission.current_condition,
       admission_exam: admission.admission_exam,
     });
@@ -684,17 +1138,54 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   }
 
   private pushDiagnosisGroup(diagnosis: Partial<Diagnosis> = {}): void {
-    this.diagnosesArray.push(
-      this.fb.group({
-        code: [diagnosis.code ?? ''],
-        title: [diagnosis.title ?? ''],
-        description: [diagnosis.description ?? ''],
-      }),
-    );
+    if (diagnosis.id) {
+      this.diagnosesArray.push(
+        this.fb.group({
+          id: [diagnosis.id],
+          code: [diagnosis.code ?? ''],
+          title: [diagnosis.title ?? ''],
+          description: [diagnosis.description ?? ''],
+        }),
+      );
+    } else {
+      this.diagnosesArray.push(
+        this.fb.group({
+          code: [diagnosis.code ?? ''],
+          title: [diagnosis.title ?? ''],
+          description: [diagnosis.description ?? ''],
+        }),
+      );
+    }
   }
 
   removeDiagnosis(index: number): void {
-    this.diagnosesArray.removeAt(index);
+    const diagnosisGroup = this.diagnosesArray.at(index);
+    const diagnosesId = diagnosisGroup?.get('id')?.value;
+
+    if (diagnosesId) {
+      this.deletingDiagnosis.set(true);
+
+      this.admissionsService
+        .deleteDiagnose(diagnosesId)
+        .pipe(
+          takeUntil(this.destroy$),
+          finalize(() => this.deletingDiagnosis.set(false)),
+        )
+        .subscribe({
+          next: () => {
+            const currentIndex = this.diagnosesArray.controls.indexOf(diagnosisGroup);
+            if (currentIndex !== -1) {
+              this.diagnosesArray.removeAt(currentIndex);
+            }
+          },
+          error: (err: Error) => {
+            this.loadError.set(err?.message ?? 'Error al eliminar el diagnóstico de la admisión');
+          },
+        });
+    } else {
+      // Si es un diagnóstico local (sin ID persistido)
+      this.diagnosesArray.removeAt(index);
+    }
   }
 
   // ── Diagnosis search ──────────────────────────────────────────────────────
@@ -706,9 +1197,9 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   }
 
   selectDiagnosis(result: DiagnosisSearchResult): void {
-    // Avoid duplicates
+    // Avoid duplicates based on code, except if code is 'TXT'
     const alreadyAdded = this.diagnosesArray.controls.some(
-      (ctrl) => ctrl.get('code')?.value === result.code,
+      (ctrl) => ctrl.get('code')?.value === result.code && result.code !== 'TXT',
     );
     if (!alreadyAdded) {
       this.pushDiagnosisGroup({ code: result.code, title: result.title });
@@ -716,6 +1207,16 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
     this.searchQuery.set('');
     this.searchResults.set([]);
     this.showDropdown.set(false);
+  }
+
+  addCustomDiagnosis(): void {
+    const query = this.searchQuery().trim();
+    if (query) {
+      this.pushDiagnosisGroup({ code: 'TXT', title: query });
+      this.searchQuery.set('');
+      this.searchResults.set([]);
+      this.showDropdown.set(false);
+    }
   }
 
   // ── Form helpers ──────────────────────────────────────────────────────────

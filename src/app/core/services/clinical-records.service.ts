@@ -4,9 +4,15 @@ import { Observable } from 'rxjs';
 import { Service } from '@angular/core';
 import { API_ENDPOINTS } from '../api.config';
 import {
-  Admission, CreateAdmissionDto, UpdateAdmissionDto,
-  Evolution, CreateEvolutionDto, UpdateEvolutionDto,
-  Discharge, CreateDischargeDto, UpdateDischargeDto,
+  Admission,
+  CreateAdmissionDto,
+  UpdateAdmissionDto,
+  Evolution,
+  CreateEvolutionDto,
+  UpdateEvolutionDto,
+  Discharge,
+  CreateDischargeDto,
+  UpdateDischargeDto,
 } from '../models';
 
 // ── Admissions ────────────────────────────────────────────────────────────────
@@ -19,8 +25,12 @@ export class AdmissionsService {
   private readonly http = inject(HttpClient);
 
   /** GET /clinical-records/admissions */
-  getAll(): Observable<Admission[]> {
-    return this.http.get<Admission[]>(API_ENDPOINTS.admissions.base);
+  getAll(status?: 'active'): Observable<Admission[]> {
+    const url =
+      status === 'active'
+        ? `${API_ENDPOINTS.admissions.base}?status=active`
+        : API_ENDPOINTS.admissions.base;
+    return this.http.get<Admission[]>(url);
   }
 
   /** GET /clinical-records/admissions/:id */
@@ -41,6 +51,11 @@ export class AdmissionsService {
   /** DELETE /clinical-records/admissions/:id */
   delete(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.admissions.byId(id));
+  }
+
+  /** DELETE /clinical-records/admissions/diagnoses/:id */
+  deleteDiagnose(id: string): Observable<void> {
+    return this.http.delete<void>(API_ENDPOINTS.admissions.byDiagnoses(id));
   }
 }
 
@@ -69,8 +84,14 @@ export class EvolutionsService {
   }
 
   /** PATCH /clinical-records/evolutions/:id */
-  update(id: string, dto: UpdateEvolutionDto): Observable<Evolution> {
-    return this.http.patch<Evolution>(API_ENDPOINTS.evolutions.byId(id), dto);
+  update(
+    id: string,
+    dto: UpdateEvolutionDto,
+  ): Observable<{ generatedMaps: string[]; raw: string[]; affected: number }> {
+    return this.http.patch<{ generatedMaps: string[]; raw: string[]; affected: number }>(
+      API_ENDPOINTS.evolutions.byId(id),
+      dto,
+    );
   }
 
   /** DELETE /clinical-records/evolutions/:id */

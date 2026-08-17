@@ -66,8 +66,18 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
 
           <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
             <div>
-              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">ID de Admisión</dt>
-              <dd class="mt-0.5 text-sm font-mono text-slate-700">{{ d.admission_id }}</dd>
+              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Admisión Asociada</dt>
+              <dd class="mt-1.5">
+                <a
+                  [routerLink]="['/admissions', d.admission_id]"
+                  class="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
+                >
+                  Ver Ficha de Admisión
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  </svg>
+                </a>
+              </dd>
             </div>
             <div>
               <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Fecha de Egreso</dt>

@@ -21,7 +21,8 @@ export const API_ENDPOINTS = {
   // Clinical Records
   admissions: {
     base: `${API_BASE_URL}/clinical-records/admissions`,
-    byId: (id: string) => `${API_BASE_URL}/clinical-records/admissions/${id}`,
+    byId: (id: string) => `${API_BASE_URL}/clinical-records/admissions/${id}`,    
+    byDiagnoses: (id:string)=> `${API_BASE_URL}/clinical-records/admissions/diagnoses/${id}`
   },
 
   evolutions: {

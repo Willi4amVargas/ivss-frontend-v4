@@ -1,16 +1,17 @@
-import { Component, OnInit, inject, signal, input, effect } from '@angular/core';
+import { Component, OnInit, inject, signal, input } from '@angular/core';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { Subject, of } from 'rxjs';
-import { DischargesService } from '../../../core/services/clinical-records.service';
+import { DischargesService, AdmissionsService } from '../../../core/services/clinical-records.service';
 import { DiagnosticsService } from '../../../core/services/diagnostics.service';
-import { CreateDischargeDto, UpdateDischargeDto, DiagnosisSearchResult } from '../../../core/models';
+import { CreateDischargeDto, UpdateDischargeDto, DiagnosisSearchResult, Admission } from '../../../core/models';
 import { ApiError } from '../../../core/interceptors/error.interceptor';
+import { SlicePipe } from '@angular/common';
 
 @Component({
   selector: 'app-discharge-form',
-  imports: [ReactiveFormsModule, RouterLink],
+  imports: [ReactiveFormsModule, RouterLink, SlicePipe],
   template: `
     <div class="p-6 max-w-3xl mx-auto animate-fade-in">
       <!-- Header -->
@@ -47,25 +48,102 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
           </h2>
 
           <!-- admission_id -->
-          <div class="mb-4">
-            <label for="admission_id" class="block text-sm font-medium text-slate-700 mb-1.5">
-              ID de Admisión <span class="text-red-500" aria-hidden="true">*</span>
+          <div class="mb-5">
+            <label class="block text-sm font-medium text-slate-700 mb-1.5">
+              Admisión a dar de Alta <span class="text-red-500" aria-hidden="true">*</span>
             </label>
-            <input
-              id="admission_id"
-              type="text"
-              formControlName="admission_id"
-              placeholder="UUID de la admisión a dar de alta"
-              class="w-full px-3 py-2 rounded-lg border text-sm font-mono transition-colors
-                focus:outline-none focus:ring-2 focus:ring-primary-500
-                {{ isInvalid('admission_id') ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white' }}"
-              [attr.aria-invalid]="isInvalid('admission_id')"
-              aria-describedby="admission_id_error"
-            >
-            @if (isInvalid('admission_id')) {
-              <p id="admission_id_error" class="mt-1 text-xs text-red-600" role="alert">
-                El ID de admisión es obligatorio.
-              </p>
+            
+            @if (selectedAdmission()) {
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50 gap-4">
+                <div class="flex items-center gap-3">
+                  <div class="w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    </svg>
+                  </div>
+                  <div class="flex flex-col">
+                    <span class="text-sm font-semibold text-slate-800">
+                      {{ selectedAdmission()!.patient?.names }} {{ selectedAdmission()!.patient?.lastnames }}
+                    </span>
+                    <span class="text-xs text-slate-500 font-mono mt-0.5">
+                      Admisión ID: {{ selectedAdmission()!.id }}
+                    </span>
+                  </div>
+                </div>
+                <button 
+                  type="button" 
+                  (click)="clearSelectedAdmission()" 
+                  class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-red-600 transition-colors bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm"
+                  aria-label="Cambiar admisión"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                  Cambiar
+                </button>
+              </div>
+            } @else {
+              <div class="relative">
+                <div 
+                  class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border bg-white cursor-pointer transition-colors
+                    {{ isInvalid('admission_id') ? 'border-red-400 bg-red-50 focus-within:ring-red-500' : 'border-slate-300 focus-within:ring-blue-500 focus-within:border-blue-500 hover:border-slate-400' }}
+                    focus-within:outline-none focus-within:ring-2"
+                  tabindex="0"
+                  (focus)="loadActiveAdmissions()"
+                  (blur)="hideDropdownWithDelay()"
+                >
+                  <span class="text-sm text-slate-500 select-none">Seleccione una admisión activa...</span>
+                  <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
+                  </svg>
+                </div>
+                
+                @if (showAdmissionsDropdown()) {
+                  <ul class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-2">
+                    @if (activeAdmissionsLoading()) {
+                      <li class="px-4 py-6 flex flex-col items-center justify-center gap-2">
+                        <svg class="w-5 h-5 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
+                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        </svg>
+                        <span class="text-sm text-slate-500">Cargando admisiones...</span>
+                      </li>
+                    } @else if (activeAdmissions().length === 0) {
+                      <li class="px-4 py-6 text-center">
+                        <span class="text-sm text-slate-500">No hay admisiones activas pendientes de egreso.</span>
+                      </li>
+                    } @else {
+                      @for (adm of activeAdmissions(); track adm.id) {
+                        <li 
+                          (click)="selectAdmission(adm)"
+                          class="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors"
+                        >
+                          <div class="flex items-center gap-3">
+                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
+                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                              </svg>
+                            </div>
+                            <div class="flex flex-col min-w-0">
+                              <span class="text-sm font-semibold text-slate-800 truncate">
+                                {{ adm.patient?.names }} {{ adm.patient?.lastnames }}
+                              </span>
+                              <span class="text-xs text-slate-500 font-mono mt-0.5 truncate">
+                                ID: {{ adm.id | slice:0:13 }}...
+                              </span>
+                            </div>
+                          </div>
+                        </li>
+                      }
+                    }
+                  </ul>
+                }
+              </div>
+              @if (isInvalid('admission_id')) {
+                <p class="mt-1 text-xs text-red-600" role="alert">
+                  Debe seleccionar una admisión para continuar.
+                </p>
+              }
             }
           </div>
 
@@ -160,9 +238,10 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                 type="text"
                 [value]="diagSearchQuery()"
                 (input)="onDiagSearch($event)"
+                (keydown.enter)="$event.preventDefault(); addFreeTextDiagnosis()"
                 placeholder="Ej: neumonía, diabetes, hipertensión..."
                 class="w-full px-3 py-2 pr-8 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-                [attr.aria-expanded]="diagResults().length > 0"
+                [attr.aria-expanded]="diagResults().length > 0 || diagSearchQuery().trim().length > 0"
                 aria-autocomplete="list"
                 aria-controls="diag_results"
                 role="combobox"
@@ -176,13 +255,29 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             </div>
 
             <!-- Results dropdown -->
-            @if (diagResults().length > 0) {
+            @if (diagResults().length > 0 || diagSearchQuery().trim().length > 0) {
               <ul
                 id="diag_results"
                 role="listbox"
                 aria-label="Resultados de diagnósticos CIE-11"
                 class="absolute z-10 mt-1 w-full bg-white border border-slate-200 rounded-lg shadow-lg max-h-52 overflow-y-auto"
               >
+                @if (diagSearchQuery().trim().length > 0) {
+                  <li
+                    role="option"
+                    [attr.aria-selected]="false"
+                    (click)="addFreeTextDiagnosis()"
+                    class="px-4 py-2.5 hover:bg-slate-100 cursor-pointer flex items-start gap-2 text-sm border-b border-slate-100 bg-slate-50 sticky top-0 z-10"
+                  >
+                    <span class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-xs font-bold mt-0.5">
+                      TXT
+                    </span>
+                    <span class="text-slate-700 italic">
+                      Añadir "<span class="font-semibold not-italic">{{ diagSearchQuery() }}</span>" como texto libre
+                    </span>
+                  </li>
+                }
+
                 @for (result of diagResults(); track result.code) {
                   <li
                     role="option"
@@ -190,7 +285,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                     (click)="addDiagnosis(result)"
                     (keydown.enter)="addDiagnosis(result)"
                     tabindex="0"
-                    class="px-4 py-2.5 hover:bg-primary-50 cursor-pointer flex items-start gap-2 text-sm border-b border-slate-50 last:border-0"
+                    class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-start gap-2 text-sm border-b border-slate-50 last:border-0"
                   >
                     <span class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-medium mt-0.5">
                       {{ result.code }}
@@ -252,14 +347,14 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
         <div class="flex items-center gap-3 justify-end">
           <a
             routerLink="/discharges"
-            class="px-5 py-2.5 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
+            class="px-5 py-2.5 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors shadow-sm"
           >
             Cancelar
           </a>
           <button
             type="submit"
             [disabled]="submitting()"
-            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-primary-900 text-white text-sm font-medium hover:bg-primary-800 disabled:opacity-50 transition-colors focus-visible:ring-2 focus-visible:ring-primary-600"
+            class="inline-flex items-center gap-2 px-5 py-2.5 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium hover:bg-[#16304f] disabled:opacity-50 shadow-sm transition-colors focus-visible:ring-2 focus-visible:ring-[#1e3a5f] focus-visible:ring-offset-2"
           >
             @if (submitting()) {
               <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
@@ -278,6 +373,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
 })
 export class DischargeFormComponent implements OnInit {
   private readonly svc = inject(DischargesService);
+  private readonly admissionsSvc = inject(AdmissionsService);
   private readonly diagSvc = inject(DiagnosticsService);
   private readonly router = inject(Router);
   private readonly route = inject(ActivatedRoute);
@@ -289,6 +385,14 @@ export class DischargeFormComponent implements OnInit {
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly submitError = signal<string | null>(null);
+  
+  // Active Admissions logic
+  readonly activeAdmissions = signal<Admission[]>([]);
+  readonly activeAdmissionsLoading = signal(false);
+  readonly showAdmissionsDropdown = signal(false);
+  readonly selectedAdmission = signal<Admission | null>(null);
+
+  // Diagnoses logic
   readonly diagSearchQuery = signal('');
   readonly diagResults = signal<DiagnosisSearchResult[]>([]);
   readonly diagLoading = signal(false);
@@ -313,6 +417,7 @@ export class DischargeFormComponent implements OnInit {
     const qAdmissionId = this.route.snapshot.queryParamMap.get('admission_id');
     if (qAdmissionId) {
       this.form.patchValue({ admission_id: qAdmissionId });
+      this.loadSingleAdmission(qAdmissionId);
     }
 
     // Determine edit mode from route param
@@ -343,6 +448,60 @@ export class DischargeFormComponent implements OnInit {
       });
   }
 
+  // --- Admissions Dropdown ---
+
+  loadActiveAdmissions(): void {
+    if (this.activeAdmissions().length > 0) {
+      this.showAdmissionsDropdown.set(true);
+      return;
+    }
+    
+    this.activeAdmissionsLoading.set(true);
+    this.showAdmissionsDropdown.set(true);
+    
+    this.admissionsSvc.getAll('active').subscribe({
+      next: (data) => {
+        this.activeAdmissions.set(data);
+        this.activeAdmissionsLoading.set(false);
+      },
+      error: () => {
+        this.activeAdmissionsLoading.set(false);
+      }
+    });
+  }
+
+  hideDropdownWithDelay(): void {
+    setTimeout(() => {
+      this.showAdmissionsDropdown.set(false);
+    }, 200);
+  }
+
+  selectAdmission(adm: Admission): void {
+    this.selectedAdmission.set(adm);
+    this.form.patchValue({ admission_id: adm.id });
+    this.showAdmissionsDropdown.set(false);
+  }
+
+  clearSelectedAdmission(): void {
+    this.selectedAdmission.set(null);
+    this.form.patchValue({ admission_id: '' });
+    // setTimeout to ensure focus is restored and dropdown triggers correctly
+    setTimeout(() => {
+      this.loadActiveAdmissions();
+    }, 50);
+  }
+
+  private loadSingleAdmission(admissionId: string): void {
+    this.admissionsSvc.getById(admissionId).subscribe({
+      next: (adm) => {
+        this.selectedAdmission.set(adm);
+      },
+      error: () => {} // Silent fail, we still have the ID in the form
+    });
+  }
+
+  // --- Discharge Data Load ---
+
   private loadDischarge(id: string): void {
     this.svc.getById(id).subscribe({
       next: (d) => {
@@ -353,6 +512,10 @@ export class DischargeFormComponent implements OnInit {
           discharge_exam: d.discharge_exam,
           treatment_plan: d.treatment_plan ?? '',
         });
+        
+        // Also load the admission object to display it in the dropdown badge
+        this.loadSingleAdmission(d.admission_id);
+
         d.discharges_diagnosis.forEach((diag) =>
           this.diagnosesArray.push(
             this.fb.group({ id: [diag.id], code: [diag.code], title: [diag.title], description: [diag.description ?? ''] }),
@@ -365,10 +528,23 @@ export class DischargeFormComponent implements OnInit {
     });
   }
 
+  // --- Diagnoses ---
+
   onDiagSearch(event: Event): void {
     const q = (event.target as HTMLInputElement).value;
     this.diagSearchQuery.set(q);
     this.diagSearch$.next(q);
+  }
+
+  addFreeTextDiagnosis(): void {
+    const text = this.diagSearchQuery().trim();
+    if (!text) return;
+
+    this.diagnosesArray.push(
+      this.fb.group({ code: ['TXT'], title: [text], description: [''] }),
+    );
+    this.diagResults.set([]);
+    this.diagSearchQuery.set('');
   }
 
   addDiagnosis(result: DiagnosisSearchResult): void {
@@ -382,6 +558,8 @@ export class DischargeFormComponent implements OnInit {
   removeDiagnosis(index: number): void {
     this.diagnosesArray.removeAt(index);
   }
+
+  // --- Form Helpers ---
 
   isInvalid(field: string): boolean {
     const ctrl = this.form.get(field);

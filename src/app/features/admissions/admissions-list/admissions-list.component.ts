@@ -1,16 +1,17 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
-import { RouterLink, Router } from '@angular/router';
-import { DatePipe, SlicePipe } from '@angular/common';
+import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { RouterLink } from '@angular/router';
+import { DatePipe, TitleCasePipe } from '@angular/common';
 import { AdmissionsService } from '../../../core/services/clinical-records.service';
 import { Admission } from '../../../core/models';
+import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-admissions-list',
-  imports: [RouterLink, DatePipe, SlicePipe],
+  imports: [RouterLink, DatePipe, TitleCasePipe],
   template: `
-    <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8">
+    <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8 flex flex-col">
       <!-- Page Header -->
-      <div class="mb-8 flex items-center justify-between">
+      <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 class="text-2xl font-bold text-slate-800">Admisiones</h1>
           <p class="mt-1 text-sm text-slate-500">Registro de admisiones hospitalarias</p>
@@ -33,6 +34,44 @@ import { Admission } from '../../../core/models';
           </svg>
           Nueva Admisión
         </a>
+      </div>
+
+      <!-- Filters -->
+      <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
+        <!-- Status Filter -->
+        <div class="w-full sm:w-48">
+          <label for="status-filter" class="sr-only">Estado de la admisión</label>
+          <select
+            id="status-filter"
+            [value]="filterStatus()"
+            (change)="onStatusChange($event)"
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="active">Solo Activas</option>
+            <option value="all">Todas</option>
+          </select>
+        </div>
+
+        <!-- Date Filter -->
+        <div class="w-full sm:w-48">
+          <label for="date-filter" class="sr-only">Filtrar por fecha</label>
+          <input
+            type="date"
+            id="date-filter"
+            [value]="filterDate()"
+            (input)="onDateChange($event)"
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          />
+        </div>
+
+        @if (filterDate()) {
+          <button
+            (click)="clearDate()"
+            class="text-sm text-slate-500 hover:text-slate-700 transition-colors"
+          >
+            Limpiar Fecha
+          </button>
+        }
       </div>
 
       <!-- Loading State -->
@@ -93,7 +132,7 @@ import { Admission } from '../../../core/models';
       }
 
       <!-- Empty State -->
-      @if (!isLoading() && !errorMsg() && admissions().length === 0) {
+      @if (!isLoading() && !errorMsg() && filteredAdmissions().length === 0) {
         <div
           class="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-white py-24 text-center"
         >
@@ -112,8 +151,8 @@ import { Admission } from '../../../core/models';
               d="M9 12h6m-3-3v6M7 4H5a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2V6a2 2 0 00-2-2h-2M9 4h6a1 1 0 011 1v1H8V5a1 1 0 011-1z"
             />
           </svg>
-          <p class="text-base font-semibold text-slate-600">No hay admisiones registradas</p>
-          <p class="mt-1 text-sm text-slate-400">Crea la primera admisión para comenzar.</p>
+          <p class="text-base font-semibold text-slate-600">No se encontraron admisiones</p>
+          <p class="mt-1 text-sm text-slate-400">Intenta cambiar los filtros o crea una nueva.</p>
           <a
             routerLink="/admissions/new"
             class="mt-6 inline-flex items-center gap-2 rounded-lg bg-[#1e3a5f] px-4 py-2 text-sm font-medium text-white hover:bg-[#16304f] focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-2"
@@ -135,46 +174,61 @@ import { Admission } from '../../../core/models';
       }
 
       <!-- Admissions Table -->
-      @if (!isLoading() && !errorMsg() && admissions().length > 0) {
-        <div class="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-          <div class="overflow-x-auto">
+      @if (!isLoading() && !errorMsg() && filteredAdmissions().length > 0) {
+        <div
+          class="overflow-hidden flex flex-col flex-1 rounded-xl border border-slate-200 bg-white shadow-sm"
+        >
+          <div class="overflow-x-auto flex-1">
             <table class="w-full text-left text-sm" aria-label="Lista de admisiones">
               <thead>
                 <tr
                   class="border-b border-slate-200 bg-slate-50 text-xs font-semibold uppercase tracking-wide text-slate-500"
                 >
-                  <th scope="col" class="px-5 py-3.5">Paciente ID</th>
+                  <th scope="col" class="px-5 py-3.5">Paciente</th>
                   <th scope="col" class="px-5 py-3.5">Fecha de Admisión</th>
                   <th scope="col" class="px-5 py-3.5">Motivo de Consulta</th>
+
+                  @if (filterStatus() === 'all') {
+                    <th scope="col" class="px-5 py-3.5">Egreso</th>
+                  }
+
                   <th scope="col" class="px-5 py-3.5 text-center">Diagnósticos</th>
                   <th scope="col" class="px-5 py-3.5 text-right">Acciones</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                @for (admission of admissions(); track admission.id) {
+                @for (admission of paginatedAdmissions(); track admission.id) {
                   <tr class="group transition hover:bg-slate-50">
-                    <!-- Patient ID -->
+                    <!-- Patient -->
                     <td class="px-5 py-4">
-                      <span
-                        class="inline-flex items-center gap-1.5 font-mono text-xs text-slate-600"
-                      >
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="h-3.5 w-3.5 text-slate-400"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          aria-hidden="true"
+                      <div class="flex items-center gap-3">
+                        <div
+                          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-blue-100 text-blue-600"
                         >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                        {{ admission.patient_id | slice: 0 : 8 }}…
-                      </span>
+                          <svg
+                            class="h-4 w-4"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              stroke-width="2"
+                              d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                            />
+                          </svg>
+                        </div>
+                        <div class="flex flex-col">
+                          <span class="text-sm font-semibold text-slate-800">
+                            {{ admission.patient.names | titlecase }}
+                            {{ admission.patient.lastnames | titlecase }}
+                          </span>
+                          <span class="text-xs text-slate-500 font-mono mt-0.5">
+                            CI: {{ admission.patient.document_id }}
+                          </span>
+                        </div>
+                      </div>
                     </td>
 
                     <!-- Admission Date -->
@@ -196,7 +250,7 @@ import { Admission } from '../../../core/models';
                               d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
                             />
                           </svg>
-                          {{ admission.admission_date | date: 'dd/MM/yyyy' }}
+                          {{ admission.admission_date | date: 'dd/MM/yyyy, HH:mm' }}
                         </span>
                       } @else {
                         <span class="italic text-slate-400">Sin fecha</span>
@@ -216,6 +270,35 @@ import { Admission } from '../../../core/models';
                         <span class="italic text-slate-400">—</span>
                       }
                     </td>
+
+                    <!-- Discharge Badge (Conditional) -->
+                    @if (filterStatus() === 'all') {
+                      <td class="px-5 py-4">
+                        @if (admission.discharge) {
+                          <a
+                            [routerLink]="['/discharges', admission.discharge.id]"
+                            class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-700 ring-1 ring-emerald-200 hover:bg-emerald-100 transition-colors"
+                            aria-label="Ver alta médica"
+                          >
+                            <span
+                              class="h-1.5 w-1.5 rounded-full bg-emerald-500"
+                              aria-hidden="true"
+                            ></span>
+                            Alta Médica
+                          </a>
+                        } @else {
+                          <span
+                            class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700 ring-1 ring-blue-200"
+                          >
+                            <span
+                              class="h-1.5 w-1.5 rounded-full bg-blue-500"
+                              aria-hidden="true"
+                            ></span>
+                            En Hospitalización
+                          </span>
+                        }
+                      </td>
+                    }
 
                     <!-- Diagnoses count -->
                     <td class="px-5 py-4 text-center">
@@ -318,11 +401,33 @@ import { Admission } from '../../../core/models';
             </table>
           </div>
 
-          <!-- Table footer with count -->
-          <div class="border-t border-slate-100 bg-slate-50 px-5 py-3">
-            <p class="text-xs text-slate-500">
-              {{ admissions().length }} admisión{{ admissions().length !== 1 ? 'es' : '' }} en total
+          <!-- Pagination Footer -->
+          <div
+            class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
+          >
+            <p class="text-xs text-slate-500 text-center sm:text-left">
+              Mostrando <span class="font-medium text-slate-700">{{ pageStart() }}</span> a
+              <span class="font-medium text-slate-700">{{ pageEnd() }}</span> de
+              <span class="font-medium text-slate-700">{{ totalItems() }}</span> resultados
             </p>
+            <div class="flex gap-2">
+              <button
+                type="button"
+                (click)="prevPage()"
+                [disabled]="currentPage() === 1"
+                class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Anterior
+              </button>
+              <button
+                type="button"
+                (click)="nextPage()"
+                [disabled]="currentPage() >= totalPages()"
+                class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                Siguiente
+              </button>
+            </div>
           </div>
         </div>
       }
@@ -410,8 +515,51 @@ export class AdmissionsListComponent implements OnInit {
   readonly admissions = signal<Admission[]>([]);
   readonly isLoading = signal(false);
   readonly errorMsg = signal<string | null>(null);
+
+  // Filters
+  readonly filterStatus = signal<'active' | 'all'>('active');
+  readonly filterDate = signal<string>('');
+
+  // Pagination State
+  readonly currentPage = signal(1);
+  readonly pageSize = signal(10);
+
   readonly deletingAdmission = signal<Admission | null>(null);
   readonly isDeleting = signal(false);
+
+  readonly filteredAdmissions = computed(() => {
+    let list = this.admissions();
+    const dateQuery = this.filterDate();
+
+    if (dateQuery) {
+      list = list.filter((a) => {
+        if (!a.admission_date) return false;
+        // admission_date is typically in ISO format "2026-03-30T..."
+        return a.admission_date.startsWith(dateQuery);
+      });
+    }
+
+    return list;
+  });
+
+  // Pagination Computeds
+  readonly totalItems = computed(() => this.filteredAdmissions().length);
+  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
+
+  readonly paginatedAdmissions = computed(() => {
+    const list = this.filteredAdmissions();
+    const start = (this.currentPage() - 1) * this.pageSize();
+    return list.slice(start, start + this.pageSize());
+  });
+
+  readonly pageStart = computed(() => {
+    if (this.totalItems() === 0) return 0;
+    return (this.currentPage() - 1) * this.pageSize() + 1;
+  });
+
+  readonly pageEnd = computed(() => {
+    return Math.min(this.currentPage() * this.pageSize(), this.totalItems());
+  });
 
   ngOnInit(): void {
     this.loadAdmissions();
@@ -421,16 +569,50 @@ export class AdmissionsListComponent implements OnInit {
     this.isLoading.set(true);
     this.errorMsg.set(null);
 
-    this.admissionsService.getAll().subscribe({
+    const statusParam = this.filterStatus() === 'active' ? 'active' : undefined;
+
+    this.admissionsService.getAll(statusParam).subscribe({
       next: (list) => {
         this.admissions.set(list);
         this.isLoading.set(false);
+        this.currentPage.set(1); // Reset page on new load
       },
       error: (err: Error) => {
         this.errorMsg.set(err?.message ?? 'Error desconocido');
         this.isLoading.set(false);
       },
     });
+  }
+
+  onStatusChange(event: Event): void {
+    const status = (event.target as HTMLSelectElement).value as 'active' | 'all';
+    this.filterStatus.set(status);
+    this.currentPage.set(1);
+    this.loadAdmissions(); // Re-fetch from API
+  }
+
+  onDateChange(event: Event): void {
+    const date = (event.target as HTMLInputElement).value;
+    this.filterDate.set(date);
+    this.currentPage.set(1); // Reset page on filter
+  }
+
+  clearDate(): void {
+    this.filterDate.set('');
+    this.currentPage.set(1);
+  }
+
+  // Pagination Actions
+  prevPage() {
+    if (this.currentPage() > 1) {
+      this.currentPage.update((p) => p - 1);
+    }
+  }
+
+  nextPage() {
+    if (this.currentPage() < this.totalPages()) {
+      this.currentPage.update((p) => p + 1);
+    }
   }
 
   confirmDelete(admission: Admission): void {
@@ -443,17 +625,30 @@ export class AdmissionsListComponent implements OnInit {
 
     this.isDeleting.set(true);
 
-    this.admissionsService.delete(target.id).subscribe({
-      next: () => {
-        this.admissions.update((list) => list.filter((a) => a.id !== target.id));
-        this.deletingAdmission.set(null);
-        this.isDeleting.set(false);
-      },
-      error: (err: Error) => {
-        this.errorMsg.set(err?.message ?? 'Error al eliminar');
-        this.deletingAdmission.set(null);
-        this.isDeleting.set(false);
-      },
-    });
+    this.admissionsService
+      .delete(target.id)
+      .pipe(
+        finalize(() => {
+          this.deletingAdmission.set(null);
+          this.isDeleting.set(false);
+        }),
+      )
+      .subscribe({
+        next: () => {
+          this.admissions.update((list) => list.filter((a) => a.id !== target.id));
+          this.deletingAdmission.set(null);
+          this.isDeleting.set(false);
+
+          // Adjust page if we deleted the last item on the current page
+          if (this.currentPage() > this.totalPages()) {
+            this.currentPage.set(Math.max(1, this.totalPages()));
+          }
+        },
+        error: (err: Error) => {
+          this.errorMsg.set(err?.message ?? 'Error al eliminar');
+          this.deletingAdmission.set(null);
+          this.isDeleting.set(false);
+        },
+      });
   }
 }
