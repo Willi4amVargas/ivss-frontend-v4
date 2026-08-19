@@ -2,7 +2,9 @@
 // API Configuration — Central API base URL
 // ─────────────────────────────────────────────────────────────────────────────
 
-export const API_BASE_URL = 'http://192.168.0.108:3000/api/v1';
+import { environment } from "../../environments/environment";
+
+export const API_BASE_URL = environment.API_BASE_URL
 
 export const API_ENDPOINTS = {
   health: '/',
