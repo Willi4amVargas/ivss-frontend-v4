@@ -3,14 +3,14 @@ import { RouterLink } from '@angular/router';
 import { SlicePipe, DatePipe, TitleCasePipe } from '@angular/common';
 
 import { DischargesService } from '../../../core/services/clinical-records.service';
-import { Discharge } from '../../../core/models';
+import { Discharge, PaginatedMeta } from '../../../core/models';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-discharges-list',
   imports: [RouterLink, SlicePipe, DatePipe, TitleCasePipe],
   template: `
-    <div class="min-h-screen bg-slate-50 px-4 py-8 flex flex-col">
+    <div class="min-h-screen bg-slate-50 px-4 sm:px-6 lg:px-8 flex flex-col">
       <!-- ── Page Header ─────────────────────────────────────────────── -->
       <div class="mx-auto max-w-7xl w-full">
         <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -20,7 +20,7 @@ import { finalize } from 'rxjs';
           </div>
           <a
             routerLink="/discharges/new"
-            class="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            class="inline-flex items-center gap-2 rounded-lg bg-[#1e3a5f] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#16304f] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
           >
             <svg
               class="h-4 w-4"
@@ -38,7 +38,7 @@ import { finalize } from 'rxjs';
 
         <!-- ── Filters ────────────────────────────────────────────────── -->
         <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">
-          <!-- Status Filter -->
+          <!-- Status Filter (Local) -->
           <div class="w-full sm:w-48">
             <label for="status-filter" class="sr-only">Estado de Morbilidad</label>
             <select
@@ -53,7 +53,7 @@ import { finalize } from 'rxjs';
             </select>
           </div>
 
-          <!-- Date Filter -->
+          <!-- Date Filter (Local) -->
           <div class="w-full sm:w-48">
             <label for="date-filter" class="sr-only">Filtrar por fecha</label>
             <input
@@ -199,7 +199,7 @@ import { finalize } from 'rxjs';
                   </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100">
-                  @for (discharge of paginatedDischarges(); track discharge.id) {
+                  @for (discharge of filteredDischarges(); track discharge.id) {
                     <tr class="group transition hover:bg-slate-50/80">
                       <!-- Admision Info -->
                       <td class="px-6 py-4">
@@ -400,33 +400,35 @@ import { finalize } from 'rxjs';
             </div>
 
             <!-- Pagination Footer -->
-            <div
-              class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
-            >
-              <p class="text-xs text-slate-500 text-center sm:text-left">
-                Mostrando <span class="font-medium text-slate-700">{{ pageStart() }}</span> a
-                <span class="font-medium text-slate-700">{{ pageEnd() }}</span> de
-                <span class="font-medium text-slate-700">{{ totalItems() }}</span> resultados
-              </p>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  (click)="prevPage()"
-                  [disabled]="currentPage() === 1"
-                  class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Anterior
-                </button>
-                <button
-                  type="button"
-                  (click)="nextPage()"
-                  [disabled]="currentPage() >= totalPages()"
-                  class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  Siguiente
-                </button>
+            @if (meta() && meta()!.total_items > 0) {
+              <div
+                class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
+              >
+                <p class="text-xs text-slate-500 text-center sm:text-left">
+                  Mostrando página <span class="font-medium text-slate-700">{{ meta()!.page }}</span> de
+                  <span class="font-medium text-slate-700">{{ meta()!.total_pages }}</span>
+                  (<span class="font-medium text-slate-700">{{ meta()!.total_items }}</span> resultados)
+                </p>
+                <div class="flex gap-2">
+                  <button
+                    type="button"
+                    (click)="prevPage()"
+                    [disabled]="meta()!.page <= 1"
+                    class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Anterior
+                  </button>
+                  <button
+                    type="button"
+                    (click)="nextPage()"
+                    [disabled]="meta()!.page >= meta()!.total_pages"
+                    class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                  >
+                    Siguiente
+                  </button>
+                </div>
               </div>
-            </div>
+            }
           </div>
         }
 
@@ -518,6 +520,8 @@ export class DischargesListComponent implements OnInit {
 
   // ── State ──────────────────────────────────────────────────────────────────
   readonly discharges = signal<Discharge[]>([]);
+  readonly meta = signal<PaginatedMeta | null>(null);
+
   readonly loading = signal(false);
   readonly error = signal<string | null>(null);
 
@@ -536,7 +540,7 @@ export class DischargesListComponent implements OnInit {
   readonly filteredDischarges = computed(() => {
     let list = this.discharges();
 
-    // Morbility status filter
+    // Morbility status filter (Local)
     const status = this.filterStatus();
     if (status === 'alive') {
       list = list.filter((d) => d.morbility_status === false);
@@ -544,7 +548,7 @@ export class DischargesListComponent implements OnInit {
       list = list.filter((d) => d.morbility_status === true);
     }
 
-    // Date filter
+    // Date filter (Local)
     const dateQuery = this.filterDate();
     if (dateQuery) {
       list = list.filter((d) => {
@@ -557,25 +561,6 @@ export class DischargesListComponent implements OnInit {
     return list;
   });
 
-  // Pagination Computeds
-  readonly totalItems = computed(() => this.filteredDischarges().length);
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
-
-  readonly paginatedDischarges = computed(() => {
-    const list = this.filteredDischarges();
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return list.slice(start, start + this.pageSize());
-  });
-
-  readonly pageStart = computed(() => {
-    if (this.totalItems() === 0) return 0;
-    return (this.currentPage() - 1) * this.pageSize() + 1;
-  });
-
-  readonly pageEnd = computed(() => {
-    return Math.min(this.currentPage() * this.pageSize(), this.totalItems());
-  });
-
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
     this.loadDischarges();
@@ -586,11 +571,11 @@ export class DischargesListComponent implements OnInit {
     this.loading.set(true);
     this.error.set(null);
 
-    this.dischargesService.getAll().subscribe({
-      next: (data) => {
-        this.discharges.set(data);
+    this.dischargesService.getAll({ page: this.currentPage(), limit: this.pageSize() }).subscribe({
+      next: (response) => {
+        this.discharges.set(response.data);
+        this.meta.set(response.meta);
         this.loading.set(false);
-        this.currentPage.set(1);
       },
       error: (err) => {
         this.error.set(err?.error?.message ?? err?.message ?? 'No se pudieron cargar los egresos.');
@@ -602,30 +587,29 @@ export class DischargesListComponent implements OnInit {
   onStatusChange(event: Event): void {
     const status = (event.target as HTMLSelectElement).value as 'all' | 'alive' | 'deceased';
     this.filterStatus.set(status);
-    this.currentPage.set(1);
   }
 
   onDateChange(event: Event): void {
     const date = (event.target as HTMLInputElement).value;
     this.filterDate.set(date);
-    this.currentPage.set(1);
   }
 
   clearDate(): void {
     this.filterDate.set('');
-    this.currentPage.set(1);
   }
 
   // Pagination Actions
   prevPage() {
-    if (this.currentPage() > 1) {
+    if (this.meta() && this.meta()!.page > 1) {
       this.currentPage.update((p) => p - 1);
+      this.loadDischarges();
     }
   }
 
   nextPage() {
-    if (this.currentPage() < this.totalPages()) {
+    if (this.meta() && this.meta()!.page < this.meta()!.total_pages) {
       this.currentPage.update((p) => p + 1);
+      this.loadDischarges();
     }
   }
 
@@ -648,19 +632,10 @@ export class DischargesListComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.discharges.update((list) => list.filter((d) => d.id !== target.id));
-          this.deletingDischarge.set(null);
-          this.deleteLoading.set(false);
-
-          // Adjust page if we deleted the last item on the current page
-          if (this.currentPage() > this.totalPages()) {
-            this.currentPage.set(Math.max(1, this.totalPages()));
-          }
+          this.loadDischarges(); // Refresh from backend after deleting
         },
         error: (err) => {
           this.error.set(err?.error?.message ?? err?.message ?? 'Error al eliminar el egreso.');
-          this.deletingDischarge.set(null);
-          this.deleteLoading.set(false);
         },
       });
   }

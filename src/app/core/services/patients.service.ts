@@ -1,9 +1,14 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Service } from '@angular/core';
 import { API_ENDPOINTS } from '../api.config';
-import { Patient, CreatePatientDto, UpdatePatientDto } from '../models';
+import { Patient, CreatePatientDto, UpdatePatientDto, PaginatedResponse, PaginationQueryParams } from '../models';
+
+export interface PatientSearchQueryParams extends PaginationQueryParams {
+  q: string;
+  type: 'document_id' | 'name' | 'history_number';
+}
 
 /**
  * PatientsService — CRUD operations for patient management
@@ -12,34 +17,30 @@ import { Patient, CreatePatientDto, UpdatePatientDto } from '../models';
 export class PatientsService {
   private readonly http = inject(HttpClient);
 
-  /** GET /patients — List all patients ordered alphabetically */
-  getAll(): Observable<Patient[]> {
-    return this.http.get<Patient[]>(API_ENDPOINTS.patients.base);
+  /** GET /patients — List all patients ordered alphabetically (Paginated) */
+  getAll(params?: PaginationQueryParams): Observable<PaginatedResponse<Patient>> {
+    let httpParams = new HttpParams();
+    if (params?.page) httpParams = httpParams.set('page', params.page);
+    if (params?.limit) httpParams = httpParams.set('limit', params.limit);
+    
+    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.base, { params: httpParams });
+  }
+
+  /** GET /patients/search — Search patients by document_id, name, or history_number (Paginated) */
+  search(params: PatientSearchQueryParams): Observable<PaginatedResponse<Patient>> {
+    let httpParams = new HttpParams()
+      .set('q', params.q)
+      .set('type', params.type);
+      
+    if (params.page) httpParams = httpParams.set('page', params.page);
+    if (params.limit) httpParams = httpParams.set('limit', params.limit);
+    
+    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.search, { params: httpParams });
   }
 
   /** GET /patients/:id — Get patient by internal UUID (includes clinical records) */
   getById(id: string): Observable<Patient> {
     return this.http.get<Patient>(API_ENDPOINTS.patients.byId(id));
-  }
-
-  /** GET /patients/cedula/:cedula — Exact match by document ID */
-  getByCedula(cedula: string): Observable<Patient> {
-    return this.http.get<Patient>(API_ENDPOINTS.patients.byCedula(cedula));
-  }
-
-  /** GET /patients/cedula/search/:cedula — Partial match by document ID */
-  searchByCedula(cedula: string): Observable<Patient[]> {
-    return this.http.get<Patient[]>(API_ENDPOINTS.patients.searchByCedula(cedula));
-  }
-
-  /** GET /patients/history/:historia — Exact match by history number */
-  getByHistory(historia: string): Observable<Patient> {
-    return this.http.get<Patient>(API_ENDPOINTS.patients.byHistory(historia));
-  }
-
-  /** GET /patients/history/search/:historia — Partial match by history number */
-  searchByHistory(historia: string): Observable<Patient[]> {
-    return this.http.get<Patient[]>(API_ENDPOINTS.patients.searchByHistory(historia));
   }
 
   /** POST /patients — Register a new patient */

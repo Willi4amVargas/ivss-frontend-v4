@@ -623,15 +623,15 @@ export class DashboardComponent implements OnInit {
     this.hasError.set(false);
 
     forkJoin({
-      patients: this.patientsService.getAll(),
-      admissions: this.admissionsService.getAll(),
-      discharges: this.dischargesService.getAll(),
+      patients: this.patientsService.getAll({ page: 1, limit: 1 }),
+      admissions: this.admissionsService.getAll({ page: 1, limit: 5 }),
+      discharges: this.dischargesService.getAll({ page: 1, limit: 1 }),
     }).subscribe({
       next: ({ patients, admissions, discharges }) => {
-        this.totalPatients.set(patients.length);
-        this.totalAdmissions.set(admissions.length);
-        this.totalDischarges.set(discharges.length);
-        this._admissions.set(admissions);
+        this.totalPatients.set(patients.meta.total_items);
+        this.totalAdmissions.set(admissions.meta.total_items);
+        this.totalDischarges.set(discharges.meta.total_items);
+        this._admissions.set(admissions.data);
         this.isLoading.set(false);
       },
       error: () => {

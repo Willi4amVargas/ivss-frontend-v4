@@ -13,10 +13,7 @@ export const API_ENDPOINTS = {
   patients: {
     base: `${API_BASE_URL}/patients`,
     byId: (id: string) => `${API_BASE_URL}/patients/${id}`,
-    byCedula: (cedula: string) => `${API_BASE_URL}/patients/cedula/${cedula}`,
-    searchByCedula: (cedula: string) => `${API_BASE_URL}/patients/cedula/search/${cedula}`,
-    byHistory: (historia: string) => `${API_BASE_URL}/patients/history/${historia}`,
-    searchByHistory: (historia: string) => `${API_BASE_URL}/patients/history/search/${historia}`,
+    search: `${API_BASE_URL}/patients/search`,
     deleteHistory: (id: string, history: string) => `${API_BASE_URL}/patients/history/${id}/${history}`,
   },
 
@@ -37,6 +34,7 @@ export const API_ENDPOINTS = {
   discharges: {
     base: `${API_BASE_URL}/clinical-records/discharges`,
     byId: (id: string) => `${API_BASE_URL}/clinical-records/discharges/${id}`,
+    byDiagnoses: (id: string) => `${API_BASE_URL}/clinical-records/discharges/diagnoses/${id}`,
   },
 
   // Diagnostics (CIE-11 proxy)

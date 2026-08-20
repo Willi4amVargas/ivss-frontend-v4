@@ -1007,10 +1007,10 @@ export class AdmissionFormComponent implements OnInit, OnDestroy {
   // ── Patient Selection ─────────────────────────────────────────────────────
   private loadAllPatients(): void {
     this.patientsService
-      .getAll()
+      .getAll({ page: 1, limit: 1000 })
       .pipe(takeUntil(this.destroy$))
-      .subscribe((patients) => {
-        this.allPatients.set(patients);
+      .subscribe((res) => {
+        this.allPatients.set(res.data);
       });
   }
 

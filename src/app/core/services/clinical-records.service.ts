@@ -1,4 +1,4 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpParams } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Service } from '@angular/core';
@@ -13,7 +13,13 @@ import {
   Discharge,
   CreateDischargeDto,
   UpdateDischargeDto,
+  PaginatedResponse,
+  PaginationQueryParams
 } from '../models';
+
+export interface AdmissionQueryParams extends PaginationQueryParams {
+  status?: 'active';
+}
 
 // ── Admissions ────────────────────────────────────────────────────────────────
 
@@ -25,12 +31,13 @@ export class AdmissionsService {
   private readonly http = inject(HttpClient);
 
   /** GET /clinical-records/admissions */
-  getAll(status?: 'active'): Observable<Admission[]> {
-    const url =
-      status === 'active'
-        ? `${API_ENDPOINTS.admissions.base}?status=active`
-        : API_ENDPOINTS.admissions.base;
-    return this.http.get<Admission[]>(url);
+  getAll(params?: AdmissionQueryParams): Observable<PaginatedResponse<Admission>> {
+    let httpParams = new HttpParams();
+    if (params?.page) httpParams = httpParams.set('page', params.page);
+    if (params?.limit) httpParams = httpParams.set('limit', params.limit);
+    if (params?.status) httpParams = httpParams.set('status', params.status);
+    
+    return this.http.get<PaginatedResponse<Admission>>(API_ENDPOINTS.admissions.base, { params: httpParams });
   }
 
   /** GET /clinical-records/admissions/:id */
@@ -110,8 +117,12 @@ export class DischargesService {
   private readonly http = inject(HttpClient);
 
   /** GET /clinical-records/discharges */
-  getAll(): Observable<Discharge[]> {
-    return this.http.get<Discharge[]>(API_ENDPOINTS.discharges.base);
+  getAll(params?: PaginationQueryParams): Observable<PaginatedResponse<Discharge>> {
+    let httpParams = new HttpParams();
+    if (params?.page) httpParams = httpParams.set('page', params.page);
+    if (params?.limit) httpParams = httpParams.set('limit', params.limit);
+
+    return this.http.get<PaginatedResponse<Discharge>>(API_ENDPOINTS.discharges.base, { params: httpParams });
   }
 
   /** GET /clinical-records/discharges/:id */
@@ -132,5 +143,10 @@ export class DischargesService {
   /** DELETE /clinical-records/discharges/:id */
   delete(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.discharges.byId(id));
+  }
+  
+  /** DELETE /clinical-records/discharges/diagnoses/:id */
+  deleteDiagnose(id: string): Observable<void> {
+    return this.http.delete<void>(API_ENDPOINTS.discharges.byDiagnoses(id));
   }
 }

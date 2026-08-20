@@ -1,9 +1,9 @@
 import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { Subject, of } from 'rxjs';
-import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
+import { debounceTime, switchMap, catchError } from 'rxjs/operators';
 import { PatientsService } from '../../../core/services/patients.service';
-import { Patient, Gender } from '../../../core/models';
+import { Patient, Gender, PaginatedMeta } from '../../../core/models';
 import { ApiError } from '../../../core/interceptors/error.interceptor';
 
 @Component({
@@ -39,8 +39,8 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             aria-label="Modo de búsqueda"
           >
             <option value="name">Buscar por Nombre</option>
-            <option value="cedula">Buscar por Cédula</option>
-            <option value="history">Buscar por Nro de Historia</option>
+            <option value="document_id">Buscar por Cédula</option>
+            <option value="history_number">Buscar por Nro de Historia</option>
           </select>
         </div>
         <!-- Search Input -->
@@ -121,7 +121,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                @for (patient of paginatedPatients(); track patient.id) {
+                @for (patient of patients(); track patient.id) {
                   <tr class="transition-colors hover:bg-slate-50/70">
                     <td class="whitespace-nowrap px-6 py-4 text-sm font-mono text-slate-700">
                       {{ patient.document_id }}
@@ -183,9 +183,9 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
               </tbody>
             </table>
           </div>
-
+          
           <!-- Empty State -->
-          @if (activePatientsList().length === 0) {
+          @if (patients().length === 0) {
             <div class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
               <svg class="h-12 w-12 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
@@ -206,16 +206,17 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
           }
 
           <!-- Pagination Footer -->
-          @if (activePatientsList().length > 0) {
+          @if (meta() !== null && meta()!.total_items > 0) {
             <div class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto">
               <p class="text-xs text-slate-500 text-center sm:text-left">
-                Mostrando <span class="font-medium text-slate-700">{{ pageStart() }}</span> a <span class="font-medium text-slate-700">{{ pageEnd() }}</span> de <span class="font-medium text-slate-700">{{ totalItems() }}</span> resultados
+                Mostrando página <span class="font-medium text-slate-700">{{ meta()!.page }}</span> de <span class="font-medium text-slate-700">{{ meta()!.total_pages }}</span> 
+                (<span class="font-medium text-slate-700">{{ meta()!.total_items }}</span> resultados)
               </p>
               <div class="flex gap-2">
                 <button
                   type="button"
                   (click)="prevPage()"
-                  [disabled]="currentPage() === 1"
+                  [disabled]="meta()!.page <= 1"
                   class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Anterior
@@ -223,7 +224,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                 <button
                   type="button"
                   (click)="nextPage()"
-                  [disabled]="currentPage() >= totalPages()"
+                  [disabled]="meta()!.page >= meta()!.total_pages"
                   class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                 >
                   Siguiente
@@ -241,12 +242,12 @@ export class PatientsListComponent implements OnInit {
 
   // ── State ──────────────────────────────────────────────────────────────────
   readonly patients = signal<Patient[]>([]);
-  readonly searchResults = signal<Patient[] | null>(null);
+  readonly meta = signal<PaginatedMeta | null>(null);
   
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
   
-  readonly searchMode = signal<'name' | 'cedula' | 'history'>('cedula');
+  readonly searchMode = signal<'name' | 'document_id' | 'history_number'>('document_id');
   readonly searchQuery = signal('');
   readonly deletingId = signal<string | null>(null);
 
@@ -256,80 +257,47 @@ export class PatientsListComponent implements OnInit {
 
   readonly skeletonRows = Array.from({ length: 10 });
 
-  private readonly searchSubject = new Subject<{mode: string, query: string}>();
+  private readonly searchSubject = new Subject<void>();
 
   // ── Derived ────────────────────────────────────────────────────────────────
   readonly searchPlaceholder = computed(() => {
     const mode = this.searchMode();
     if (mode === 'name') return 'Buscar por nombre completo…';
-    if (mode === 'cedula') return 'Buscar por número de cédula…';
+    if (mode === 'document_id') return 'Buscar por número de cédula…';
     return 'Buscar por número de historia clínica…';
-  });
-
-  readonly activePatientsList = computed(() => {
-    const mode = this.searchMode();
-    const q = this.searchQuery().trim().toLowerCase();
-    const results = this.searchResults();
-
-    // If searching by API and we have results, return them
-    if (mode !== 'name' && results !== null) {
-      return results;
-    }
-
-    const all = this.patients();
-    
-    // If local search by name
-    if (mode === 'name' && q) {
-      return all.filter((p) => {
-        const fullName = `${p.names} ${p.lastnames}`.toLowerCase();
-        return fullName.includes(q);
-      });
-    }
-
-    return all;
-  });
-
-  // Pagination computeds
-  readonly totalItems = computed(() => this.activePatientsList().length);
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
-  
-  readonly paginatedPatients = computed(() => {
-    const list = this.activePatientsList();
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return list.slice(start, start + this.pageSize());
-  });
-
-  readonly pageStart = computed(() => {
-    if (this.totalItems() === 0) return 0;
-    return (this.currentPage() - 1) * this.pageSize() + 1;
-  });
-
-  readonly pageEnd = computed(() => {
-    return Math.min(this.currentPage() * this.pageSize(), this.totalItems());
   });
 
   // ── Constructor & RxJS ─────────────────────────────────────────────────────
   constructor() {
     this.searchSubject.pipe(
       debounceTime(300),
-      distinctUntilChanged((prev, curr) => prev.mode === curr.mode && prev.query === curr.query),
-      switchMap(({ mode, query }) => {
-        if (!query.trim()) {
-          this.searchResults.set(null);
-          return of(null);
-        }
-        
+      switchMap(() => {
         this.loading.set(true);
-        if (mode === 'cedula') {
-          return this.patientsService.searchByCedula(query).pipe(catchError(() => of([])));
-        } else if (mode === 'history') {
-          return this.patientsService.searchByHistory(query).pipe(catchError(() => of([])));
+        const q = this.searchQuery().trim();
+        const mode = this.searchMode();
+        const page = this.currentPage();
+        const limit = this.pageSize();
+
+        if (q) {
+          return this.patientsService.search({ q, type: mode, page, limit }).pipe(
+            catchError((err: ApiError) => {
+              this.error.set(err.message ?? 'Error al buscar pacientes.');
+              return of(null);
+            })
+          );
+        } else {
+          return this.patientsService.getAll({ page, limit }).pipe(
+            catchError((err: ApiError) => {
+              this.error.set(err.message ?? 'Error al cargar los pacientes.');
+              return of(null);
+            })
+          );
         }
-        return of(null);
       })
-    ).subscribe(results => {
-      if (results !== null) {
-        this.searchResults.set(results as Patient[]);
+    ).subscribe(response => {
+      if (response !== null) {
+        this.patients.set(response.data);
+        this.meta.set(response.meta);
       }
       this.loading.set(false);
     });
@@ -337,7 +305,7 @@ export class PatientsListComponent implements OnInit {
 
   // ── Lifecycle ──────────────────────────────────────────────────────────────
   ngOnInit(): void {
-    this.loadPatients();
+    this.fetchData();
   }
 
   // ── Helpers ────────────────────────────────────────────────────────────────
@@ -349,53 +317,35 @@ export class PatientsListComponent implements OnInit {
   onSearchInput(event: Event) {
     const q = (event.target as HTMLInputElement).value;
     this.searchQuery.set(q);
-    this.currentPage.set(1); // Reset page on new search
-    
-    if (this.searchMode() !== 'name') {
-       this.searchSubject.next({ mode: this.searchMode(), query: q });
-    } else {
-       this.searchResults.set(null);
-    }
+    this.currentPage.set(1); 
+    this.fetchData();
   }
 
   onModeChange(event: Event) {
-     const mode = (event.target as HTMLSelectElement).value as 'name' | 'cedula' | 'history';
+     const mode = (event.target as HTMLSelectElement).value as 'name' | 'document_id' | 'history_number';
      this.searchMode.set(mode);
-     this.currentPage.set(1); // Reset page on mode change
-     
-     if (mode === 'name') {
-        this.searchResults.set(null);
-     } else {
-        this.searchSubject.next({ mode, query: this.searchQuery() });
-     }
+     this.currentPage.set(1);
+     this.fetchData();
   }
 
   prevPage() {
-    if (this.currentPage() > 1) {
+    if (this.meta() && this.meta()!.page > 1) {
       this.currentPage.update(p => p - 1);
+      this.fetchData();
     }
   }
 
   nextPage() {
-    if (this.currentPage() < this.totalPages()) {
+    if (this.meta() && this.meta()!.page < this.meta()!.total_pages) {
       this.currentPage.update(p => p + 1);
+      this.fetchData();
     }
   }
 
   // ── Actions ────────────────────────────────────────────────────────────────
-  private loadPatients(): void {
-    this.loading.set(true);
+  private fetchData(): void {
     this.error.set(null);
-    this.patientsService.getAll().subscribe({
-      next: (list) => {
-        this.patients.set(list);
-        this.loading.set(false);
-      },
-      error: (err: ApiError) => {
-        this.error.set(err.message ?? 'Error al cargar los pacientes.');
-        this.loading.set(false);
-      },
-    });
+    this.searchSubject.next();
   }
 
   onDelete(patient: Patient): void {
@@ -410,13 +360,8 @@ export class PatientsListComponent implements OnInit {
     this.patientsService.delete(patient.id).subscribe({
       next: () => {
         this.deletingId.set(null);
-        // Remove locally from the patients array
-        this.patients.update(list => list.filter(p => p.id !== patient.id));
-        
-        // Also remove from searchResults if we're currently viewing search results
-        if (this.searchResults() !== null) {
-          this.searchResults.update(list => list ? list.filter(p => p.id !== patient.id) : null);
-        }
+        // Refresh data on delete
+        this.fetchData();
       },
       error: (err: ApiError) => {
         this.deletingId.set(null);

@@ -3,9 +3,17 @@ import { Router, RouterLink, ActivatedRoute } from '@angular/router';
 import { FormBuilder, FormGroup, FormArray, Validators, ReactiveFormsModule } from '@angular/forms';
 import { debounceTime, distinctUntilChanged, switchMap, catchError } from 'rxjs/operators';
 import { Subject, of } from 'rxjs';
-import { DischargesService, AdmissionsService } from '../../../core/services/clinical-records.service';
+import {
+  DischargesService,
+  AdmissionsService,
+} from '../../../core/services/clinical-records.service';
 import { DiagnosticsService } from '../../../core/services/diagnostics.service';
-import { CreateDischargeDto, UpdateDischargeDto, DiagnosisSearchResult, Admission } from '../../../core/models';
+import {
+  CreateDischargeDto,
+  UpdateDischargeDto,
+  DiagnosisSearchResult,
+  Admission,
+} from '../../../core/models';
 import { ApiError } from '../../../core/interceptors/error.interceptor';
 import { SlicePipe } from '@angular/common';
 
@@ -16,9 +24,23 @@ import { SlicePipe } from '@angular/common';
     <div class="p-6 max-w-3xl mx-auto animate-fade-in">
       <!-- Header -->
       <div class="mb-6">
-        <a routerLink="/discharges" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition-colors">
-          <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+        <a
+          routerLink="/discharges"
+          class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-3 transition-colors"
+        >
+          <svg
+            class="w-4 h-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
           Volver a Egresos
         </a>
@@ -26,15 +48,34 @@ import { SlicePipe } from '@angular/common';
           {{ isEditMode() ? 'Editar Egreso' : 'Registrar Egreso' }}
         </h1>
         <p class="text-sm text-slate-500 mt-0.5">
-          {{ isEditMode() ? 'Modifique los datos del egreso médico' : 'Complete los campos para registrar el alta médica' }}
+          {{
+            isEditMode()
+              ? 'Modifique los datos del egreso médico'
+              : 'Complete los campos para registrar el alta médica'
+          }}
         </p>
       </div>
 
       <!-- Error Banner -->
       @if (submitError()) {
-        <div role="alert" aria-live="assertive" class="mb-5 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <div
+          role="alert"
+          aria-live="assertive"
+          class="mb-5 flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <svg
+            class="w-4 h-4 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
           </svg>
           {{ submitError() }}
         </div>
@@ -52,31 +93,54 @@ import { SlicePipe } from '@angular/common';
             <label class="block text-sm font-medium text-slate-700 mb-1.5">
               Admisión a dar de Alta <span class="text-red-500" aria-hidden="true">*</span>
             </label>
-            
+
             @if (selectedAdmission()) {
-              <div class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50 gap-4">
+              <div
+                class="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-xl border border-blue-200 bg-blue-50 gap-4"
+              >
                 <div class="flex items-center gap-3">
-                  <div class="w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  <div
+                    class="w-10 h-10 shrink-0 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-5 w-5"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      stroke-width="2"
+                    >
+                      <path
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                      />
                     </svg>
                   </div>
                   <div class="flex flex-col">
                     <span class="text-sm font-semibold text-slate-800">
-                      {{ selectedAdmission()!.patient?.names }} {{ selectedAdmission()!.patient?.lastnames }}
+                      {{ selectedAdmission()!.patient?.names }}
+                      {{ selectedAdmission()!.patient?.lastnames }}
                     </span>
                     <span class="text-xs text-slate-500 font-mono mt-0.5">
                       Admisión ID: {{ selectedAdmission()!.id }}
                     </span>
                   </div>
                 </div>
-                <button 
-                  type="button" 
-                  (click)="clearSelectedAdmission()" 
+                <button
+                  type="button"
+                  (click)="clearSelectedAdmission()"
                   class="shrink-0 inline-flex items-center gap-1.5 text-xs font-medium text-slate-500 hover:text-red-600 transition-colors bg-white px-2.5 py-1.5 rounded-lg border border-slate-200 shadow-sm"
                   aria-label="Cambiar admisión"
                 >
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                   Cambiar
@@ -84,44 +148,87 @@ import { SlicePipe } from '@angular/common';
               </div>
             } @else {
               <div class="relative">
-                <div 
+                <div
                   class="w-full flex items-center justify-between px-3 py-2.5 rounded-lg border bg-white cursor-pointer transition-colors
-                    {{ isInvalid('admission_id') ? 'border-red-400 bg-red-50 focus-within:ring-red-500' : 'border-slate-300 focus-within:ring-blue-500 focus-within:border-blue-500 hover:border-slate-400' }}
+                    {{
+                    isInvalid('admission_id')
+                      ? 'border-red-400 bg-red-50 focus-within:ring-red-500'
+                      : 'border-slate-300 focus-within:ring-blue-500 focus-within:border-blue-500 hover:border-slate-400'
+                  }}
                     focus-within:outline-none focus-within:ring-2"
                   tabindex="0"
                   (focus)="loadActiveAdmissions()"
                   (blur)="hideDropdownWithDelay()"
                 >
-                  <span class="text-sm text-slate-500 select-none">Seleccione una admisión activa...</span>
-                  <svg class="w-4 h-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <span class="text-sm text-slate-500 select-none"
+                    >Seleccione una admisión activa...</span
+                  >
+                  <svg
+                    class="w-4 h-4 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
                     <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
                   </svg>
                 </div>
-                
+
                 @if (showAdmissionsDropdown()) {
-                  <ul class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-2">
+                  <ul
+                    class="absolute z-20 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-xl max-h-64 overflow-y-auto py-1 animate-in fade-in slide-in-from-top-2"
+                  >
                     @if (activeAdmissionsLoading()) {
                       <li class="px-4 py-6 flex flex-col items-center justify-center gap-2">
-                        <svg class="w-5 h-5 animate-spin text-blue-600" fill="none" viewBox="0 0 24 24">
-                          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                        <svg
+                          class="w-5 h-5 animate-spin text-blue-600"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                        >
+                          <circle
+                            class="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            stroke-width="4"
+                          ></circle>
+                          <path
+                            class="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          ></path>
                         </svg>
                         <span class="text-sm text-slate-500">Cargando admisiones...</span>
                       </li>
                     } @else if (activeAdmissions().length === 0) {
                       <li class="px-4 py-6 text-center">
-                        <span class="text-sm text-slate-500">No hay admisiones activas pendientes de egreso.</span>
+                        <span class="text-sm text-slate-500"
+                          >No hay admisiones activas pendientes de egreso.</span
+                        >
                       </li>
                     } @else {
                       @for (adm of activeAdmissions(); track adm.id) {
-                        <li 
+                        <li
                           (click)="selectAdmission(adm)"
                           class="px-4 py-3 hover:bg-slate-50 cursor-pointer border-b border-slate-50 last:border-0 transition-colors"
                         >
                           <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500">
-                              <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            <div
+                              class="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-slate-500"
+                            >
+                              <svg
+                                class="w-4 h-4"
+                                fill="none"
+                                viewBox="0 0 24 24"
+                                stroke="currentColor"
+                              >
+                                <path
+                                  stroke-linecap="round"
+                                  stroke-linejoin="round"
+                                  stroke-width="2"
+                                  d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                />
                               </svg>
                             </div>
                             <div class="flex flex-col min-w-0">
@@ -129,7 +236,7 @@ import { SlicePipe } from '@angular/common';
                                 {{ adm.patient?.names }} {{ adm.patient?.lastnames }}
                               </span>
                               <span class="text-xs text-slate-500 font-mono mt-0.5 truncate">
-                                ID: {{ adm.id | slice:0:13 }}...
+                                ID: {{ adm.id | slice: 0 : 13 }}...
                               </span>
                             </div>
                           </div>
@@ -157,7 +264,7 @@ import { SlicePipe } from '@angular/common';
               type="datetime-local"
               formControlName="discharge_date"
               class="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-            >
+            />
           </div>
 
           <!-- morbility_status -->
@@ -167,7 +274,7 @@ import { SlicePipe } from '@angular/common';
               type="checkbox"
               formControlName="morbility_status"
               class="h-4 w-4 rounded border-slate-300 text-red-600 focus:ring-red-500"
-            >
+            />
             <label for="morbility_status" class="text-sm font-medium text-slate-700">
               Egreso por Fallecimiento (morbilidad)
             </label>
@@ -189,7 +296,11 @@ import { SlicePipe } from '@angular/common';
               rows="4"
               placeholder="Campos pulmonares limpios, ruidos cardíacos rítmicos..."
               class="w-full px-3 py-2 rounded-lg border text-sm resize-y transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500
-                {{ isInvalid('discharge_exam') ? 'border-red-400 bg-red-50' : 'border-slate-300 bg-white' }}"
+                {{
+                isInvalid('discharge_exam')
+                  ? 'border-red-400 bg-red-50'
+                  : 'border-slate-300 bg-white'
+              }}"
               [attr.aria-invalid]="isInvalid('discharge_exam')"
               aria-describedby="discharge_exam_error"
             ></textarea>
@@ -241,15 +352,33 @@ import { SlicePipe } from '@angular/common';
                 (keydown.enter)="$event.preventDefault(); addFreeTextDiagnosis()"
                 placeholder="Ej: neumonía, diabetes, hipertensión..."
                 class="w-full px-3 py-2 pr-8 rounded-lg border border-slate-300 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 transition-colors"
-                [attr.aria-expanded]="diagResults().length > 0 || diagSearchQuery().trim().length > 0"
+                [attr.aria-expanded]="
+                  diagResults().length > 0 || diagSearchQuery().trim().length > 0
+                "
                 aria-autocomplete="list"
                 aria-controls="diag_results"
                 role="combobox"
-              >
+              />
               @if (diagLoading()) {
-                <svg class="absolute right-2.5 top-2.5 w-4 h-4 text-slate-400 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                  <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                <svg
+                  class="absolute right-2.5 top-2.5 w-4 h-4 text-slate-400 animate-spin"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                  />
                 </svg>
               }
             </div>
@@ -269,11 +398,14 @@ import { SlicePipe } from '@angular/common';
                     (click)="addFreeTextDiagnosis()"
                     class="px-4 py-2.5 hover:bg-slate-100 cursor-pointer flex items-start gap-2 text-sm border-b border-slate-100 bg-slate-50 sticky top-0 z-10"
                   >
-                    <span class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-xs font-bold mt-0.5">
+                    <span
+                      class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-slate-200 text-slate-700 font-mono text-xs font-bold mt-0.5"
+                    >
                       TXT
                     </span>
                     <span class="text-slate-700 italic">
-                      Añadir "<span class="font-semibold not-italic">{{ diagSearchQuery() }}</span>" como texto libre
+                      Añadir "<span class="font-semibold not-italic">{{ diagSearchQuery() }}</span
+                      >" como texto libre
                     </span>
                   </li>
                 }
@@ -287,7 +419,9 @@ import { SlicePipe } from '@angular/common';
                     tabindex="0"
                     class="px-4 py-2.5 hover:bg-blue-50 cursor-pointer flex items-start gap-2 text-sm border-b border-slate-50 last:border-0"
                   >
-                    <span class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-medium mt-0.5">
+                    <span
+                      class="inline-flex shrink-0 px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-medium mt-0.5"
+                    >
                       {{ result.code }}
                     </span>
                     <span class="text-slate-700">{{ result.title }}</span>
@@ -300,13 +434,20 @@ import { SlicePipe } from '@angular/common';
           <!-- Selected diagnoses -->
           <div formArrayName="diagnoses" class="space-y-2">
             @for (diag of diagnosesArray.controls; track $index; let i = $index) {
-              <div [formGroupName]="i" class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
+              <div
+                [formGroupName]="i"
+                class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200"
+              >
                 <div class="flex-1 min-w-0">
                   <div class="flex items-center gap-2 mb-1">
-                    <span class="inline-flex px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-medium">
+                    <span
+                      class="inline-flex px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-medium"
+                    >
                       {{ diag.get('code')?.value }}
                     </span>
-                    <span class="text-sm font-medium text-slate-700 truncate">{{ diag.get('title')?.value }}</span>
+                    <span class="text-sm font-medium text-slate-700 truncate">{{
+                      diag.get('title')?.value
+                    }}</span>
                   </div>
                   <input
                     type="text"
@@ -314,7 +455,7 @@ import { SlicePipe } from '@angular/common';
                     placeholder="Descripción adicional (opcional)"
                     [attr.aria-label]="'Descripción del diagnóstico ' + diag.get('code')?.value"
                     class="w-full px-2 py-1 rounded border border-slate-300 bg-white text-xs focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors"
-                  >
+                  />
                 </div>
                 <button
                   type="button"
@@ -322,8 +463,19 @@ import { SlicePipe } from '@angular/common';
                   class="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors shrink-0 mt-0.5"
                   [attr.aria-label]="'Eliminar diagnóstico ' + diag.get('code')?.value"
                 >
-                  <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                  <svg
+                    class="w-4 h-4"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      stroke-width="2"
+                      d="M6 18L18 6M6 6l12 12"
+                    />
                   </svg>
                 </button>
               </div>
@@ -358,8 +510,19 @@ import { SlicePipe } from '@angular/common';
           >
             @if (submitting()) {
               <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path
+                  class="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+                />
               </svg>
               Guardando...
             } @else {
@@ -385,7 +548,7 @@ export class DischargeFormComponent implements OnInit {
   readonly submitting = signal(false);
   readonly submitted = signal(false);
   readonly submitError = signal<string | null>(null);
-  
+
   // Active Admissions logic
   readonly activeAdmissions = signal<Admission[]>([]);
   readonly activeAdmissionsLoading = signal(false);
@@ -455,19 +618,25 @@ export class DischargeFormComponent implements OnInit {
       this.showAdmissionsDropdown.set(true);
       return;
     }
-    
+
     this.activeAdmissionsLoading.set(true);
     this.showAdmissionsDropdown.set(true);
-    
-    this.admissionsSvc.getAll('active').subscribe({
-      next: (data) => {
-        this.activeAdmissions.set(data);
-        this.activeAdmissionsLoading.set(false);
-      },
-      error: () => {
-        this.activeAdmissionsLoading.set(false);
-      }
-    });
+
+    this.admissionsSvc
+      .getAll({
+        page: 1,
+        limit: 20,
+        status: 'active',
+      })
+      .subscribe({
+        next: (data) => {
+          this.activeAdmissions.set(data.data);
+          this.activeAdmissionsLoading.set(false);
+        },
+        error: () => {
+          this.activeAdmissionsLoading.set(false);
+        },
+      });
   }
 
   hideDropdownWithDelay(): void {
@@ -496,7 +665,7 @@ export class DischargeFormComponent implements OnInit {
       next: (adm) => {
         this.selectedAdmission.set(adm);
       },
-      error: () => {} // Silent fail, we still have the ID in the form
+      error: () => {}, // Silent fail, we still have the ID in the form
     });
   }
 
@@ -512,13 +681,18 @@ export class DischargeFormComponent implements OnInit {
           discharge_exam: d.discharge_exam,
           treatment_plan: d.treatment_plan ?? '',
         });
-        
+
         // Also load the admission object to display it in the dropdown badge
         this.loadSingleAdmission(d.admission_id);
 
         d.discharges_diagnosis.forEach((diag) =>
           this.diagnosesArray.push(
-            this.fb.group({ id: [diag.id], code: [diag.code], title: [diag.title], description: [diag.description ?? ''] }),
+            this.fb.group({
+              id: [diag.id],
+              code: [diag.code],
+              title: [diag.title],
+              description: [diag.description ?? ''],
+            }),
           ),
         );
       },
@@ -540,9 +714,7 @@ export class DischargeFormComponent implements OnInit {
     const text = this.diagSearchQuery().trim();
     if (!text) return;
 
-    this.diagnosesArray.push(
-      this.fb.group({ code: ['TXT'], title: [text], description: [''] }),
-    );
+    this.diagnosesArray.push(this.fb.group({ code: ['TXT'], title: [text], description: [''] }));
     this.diagResults.set([]);
     this.diagSearchQuery.set('');
   }

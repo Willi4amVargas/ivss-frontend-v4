@@ -2,14 +2,14 @@ import { Component, OnInit, inject, signal, computed } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { DatePipe, TitleCasePipe } from '@angular/common';
 import { AdmissionsService } from '../../../core/services/clinical-records.service';
-import { Admission } from '../../../core/models';
+import { Admission, PaginatedMeta } from '../../../core/models';
 import { finalize } from 'rxjs';
 
 @Component({
   selector: 'app-admissions-list',
   imports: [RouterLink, DatePipe, TitleCasePipe],
   template: `
-    <div class="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-8 flex flex-col">
+    <div class="min-h-screen bg-slate-50 px-4 sm:px-6 lg:px-8 flex flex-col">
       <!-- Page Header -->
       <div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -52,7 +52,7 @@ import { finalize } from 'rxjs';
           </select>
         </div>
 
-        <!-- Date Filter -->
+        <!-- Date Filter (Local) -->
         <div class="w-full sm:w-48">
           <label for="date-filter" class="sr-only">Filtrar por fecha</label>
           <input
@@ -197,7 +197,7 @@ import { finalize } from 'rxjs';
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100">
-                @for (admission of paginatedAdmissions(); track admission.id) {
+                @for (admission of filteredAdmissions(); track admission.id) {
                   <tr class="group transition hover:bg-slate-50">
                     <!-- Patient -->
                     <td class="px-5 py-4">
@@ -402,33 +402,35 @@ import { finalize } from 'rxjs';
           </div>
 
           <!-- Pagination Footer -->
-          <div
-            class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
-          >
-            <p class="text-xs text-slate-500 text-center sm:text-left">
-              Mostrando <span class="font-medium text-slate-700">{{ pageStart() }}</span> a
-              <span class="font-medium text-slate-700">{{ pageEnd() }}</span> de
-              <span class="font-medium text-slate-700">{{ totalItems() }}</span> resultados
-            </p>
-            <div class="flex gap-2">
-              <button
-                type="button"
-                (click)="prevPage()"
-                [disabled]="currentPage() === 1"
-                class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Anterior
-              </button>
-              <button
-                type="button"
-                (click)="nextPage()"
-                [disabled]="currentPage() >= totalPages()"
-                class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-              >
-                Siguiente
-              </button>
+          @if (meta() && meta()!.total_items > 0) {
+            <div
+              class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
+            >
+              <p class="text-xs text-slate-500 text-center sm:text-left">
+                Mostrando página <span class="font-medium text-slate-700">{{ meta()!.page }}</span> de
+                <span class="font-medium text-slate-700">{{ meta()!.total_pages }}</span>
+                (<span class="font-medium text-slate-700">{{ meta()!.total_items }}</span> resultados)
+              </p>
+              <div class="flex gap-2">
+                <button
+                  type="button"
+                  (click)="prevPage()"
+                  [disabled]="meta()!.page <= 1"
+                  class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  (click)="nextPage()"
+                  [disabled]="meta()!.page >= meta()!.total_pages"
+                  class="inline-flex items-center rounded px-3 py-1.5 text-xs font-medium text-slate-600 border border-slate-200 bg-white hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f] focus:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente
+                </button>
+              </div>
             </div>
-          </div>
+          }
         </div>
       }
 
@@ -513,6 +515,8 @@ export class AdmissionsListComponent implements OnInit {
   private readonly admissionsService = inject(AdmissionsService);
 
   readonly admissions = signal<Admission[]>([]);
+  readonly meta = signal<PaginatedMeta | null>(null);
+  
   readonly isLoading = signal(false);
   readonly errorMsg = signal<string | null>(null);
 
@@ -542,25 +546,6 @@ export class AdmissionsListComponent implements OnInit {
     return list;
   });
 
-  // Pagination Computeds
-  readonly totalItems = computed(() => this.filteredAdmissions().length);
-  readonly totalPages = computed(() => Math.max(1, Math.ceil(this.totalItems() / this.pageSize())));
-
-  readonly paginatedAdmissions = computed(() => {
-    const list = this.filteredAdmissions();
-    const start = (this.currentPage() - 1) * this.pageSize();
-    return list.slice(start, start + this.pageSize());
-  });
-
-  readonly pageStart = computed(() => {
-    if (this.totalItems() === 0) return 0;
-    return (this.currentPage() - 1) * this.pageSize() + 1;
-  });
-
-  readonly pageEnd = computed(() => {
-    return Math.min(this.currentPage() * this.pageSize(), this.totalItems());
-  });
-
   ngOnInit(): void {
     this.loadAdmissions();
   }
@@ -571,11 +556,15 @@ export class AdmissionsListComponent implements OnInit {
 
     const statusParam = this.filterStatus() === 'active' ? 'active' : undefined;
 
-    this.admissionsService.getAll(statusParam).subscribe({
-      next: (list) => {
-        this.admissions.set(list);
+    this.admissionsService.getAll({ 
+      page: this.currentPage(), 
+      limit: this.pageSize(),
+      status: statusParam
+    }).subscribe({
+      next: (response) => {
+        this.admissions.set(response.data);
+        this.meta.set(response.meta);
         this.isLoading.set(false);
-        this.currentPage.set(1); // Reset page on new load
       },
       error: (err: Error) => {
         this.errorMsg.set(err?.message ?? 'Error desconocido');
@@ -594,24 +583,25 @@ export class AdmissionsListComponent implements OnInit {
   onDateChange(event: Event): void {
     const date = (event.target as HTMLInputElement).value;
     this.filterDate.set(date);
-    this.currentPage.set(1); // Reset page on filter
+    // Note: Local date filtering on paginated result. To truly filter by date, the backend must support it.
   }
 
   clearDate(): void {
     this.filterDate.set('');
-    this.currentPage.set(1);
   }
 
   // Pagination Actions
   prevPage() {
-    if (this.currentPage() > 1) {
+    if (this.meta() && this.meta()!.page > 1) {
       this.currentPage.update((p) => p - 1);
+      this.loadAdmissions();
     }
   }
 
   nextPage() {
-    if (this.currentPage() < this.totalPages()) {
+    if (this.meta() && this.meta()!.page < this.meta()!.total_pages) {
       this.currentPage.update((p) => p + 1);
+      this.loadAdmissions();
     }
   }
 
@@ -635,19 +625,10 @@ export class AdmissionsListComponent implements OnInit {
       )
       .subscribe({
         next: () => {
-          this.admissions.update((list) => list.filter((a) => a.id !== target.id));
-          this.deletingAdmission.set(null);
-          this.isDeleting.set(false);
-
-          // Adjust page if we deleted the last item on the current page
-          if (this.currentPage() > this.totalPages()) {
-            this.currentPage.set(Math.max(1, this.totalPages()));
-          }
+          this.loadAdmissions(); // Refresh the list after deleting
         },
         error: (err: Error) => {
           this.errorMsg.set(err?.message ?? 'Error al eliminar');
-          this.deletingAdmission.set(null);
-          this.isDeleting.set(false);
         },
       });
   }
