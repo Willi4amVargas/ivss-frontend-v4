@@ -136,9 +136,49 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
           >
             Volver
           </a>
+          <button
+            type="button"
+            (click)="downloadPdf()"
+            [disabled]="isDownloading()"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
+          >
+            @if (isDownloading()) {
+              <svg
+                class="h-4 w-4 animate-spin"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+              >
+                <circle
+                  class="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  stroke-width="4"
+                />
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+              </svg>
+              Descargando...
+            } @else {
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4 text-slate-500"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
+              Descargar PDF
+            }
+          </button>
           <a
             [routerLink]="['/discharges', d.id, 'edit']"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary-900 text-white text-sm font-medium hover:bg-primary-800 transition-colors"
+            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium hover:bg-[#16304f] transition-colors"
           >
             <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
@@ -157,6 +197,7 @@ export class DischargeDetailComponent implements OnInit {
   readonly discharge = signal<Discharge | null>(null);
   readonly loading = signal(true);
   readonly error = signal<string | null>(null);
+  readonly isDownloading = signal(false);
 
   ngOnInit(): void {
     const id = this.route.snapshot.paramMap.get('id');
@@ -174,6 +215,29 @@ export class DischargeDetailComponent implements OnInit {
         this.error.set(err.message);
         this.loading.set(false);
       },
+    });
+  }
+
+  downloadPdf(): void {
+    const currentDischarge = this.discharge();
+    if (!currentDischarge) return;
+    
+    this.isDownloading.set(true);
+    
+    this.svc.downloadDocument(currentDischarge.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `discharge_${currentDischarge.id}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.isDownloading.set(false);
+      },
+      error: () => {
+        console.error('Error downloading document');
+        this.isDownloading.set(false);
+      }
     });
   }
 }

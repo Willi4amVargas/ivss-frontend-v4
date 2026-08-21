@@ -98,6 +98,46 @@ import { Admission, Evolution } from '../../../core/models';
 
           <!-- Action buttons -->
           <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              (click)="downloadPdf()"
+              [disabled]="isDownloading()"
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
+            >
+              @if (isDownloading()) {
+                <svg
+                  class="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Descargando...
+              } @else {
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                </svg>
+                Descargar PDF
+              }
+            </button>
             <a
               [routerLink]="['/admissions', admission()!.id, 'edit']"
               class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
@@ -770,6 +810,9 @@ export class AdmissionDetailComponent implements OnInit, OnDestroy {
   readonly evolutions = signal<Evolution[]>([]);
   readonly isLoadingEvolutions = signal(false);
 
+  // ── Document download state ───────────────────────────────────────────────
+  readonly isDownloading = signal(false);
+
   // New evolution
   newEvolutionText = '';
   readonly isAddingEvolution = signal(false);
@@ -911,5 +954,29 @@ export class AdmissionDetailComponent implements OnInit, OnDestroy {
           // Silent fail — could show toast in production
         },
       });
+  }
+
+  // ── Download document ─────────────────────────────────────────────────────
+  downloadPdf(): void {
+    const currentAdmission = this.admission();
+    if (!currentAdmission) return;
+    
+    this.isDownloading.set(true);
+    
+    this.admissionsService.downloadDocument(currentAdmission.id).subscribe({
+      next: (blob) => {
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `admission_${currentAdmission.id}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+        this.isDownloading.set(false);
+      },
+      error: () => {
+        console.error('Error downloading document');
+        this.isDownloading.set(false);
+      }
+    });
   }
 }

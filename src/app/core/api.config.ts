@@ -20,8 +20,9 @@ export const API_ENDPOINTS = {
   // Clinical Records
   admissions: {
     base: `${API_BASE_URL}/clinical-records/admissions`,
-    byId: (id: string) => `${API_BASE_URL}/clinical-records/admissions/${id}`,    
-    byDiagnoses: (id:string)=> `${API_BASE_URL}/clinical-records/admissions/diagnoses/${id}`
+    byId: (id: string) => `${API_BASE_URL}/clinical-records/admissions/${id}`,
+    byDiagnoses: (id: string) => `${API_BASE_URL}/clinical-records/admissions/diagnoses/${id}`,
+    document: (id: string) => `${API_BASE_URL}/clinical-records/admissions/${id}/document`,
   },
 
   evolutions: {
@@ -35,6 +36,7 @@ export const API_ENDPOINTS = {
     base: `${API_BASE_URL}/clinical-records/discharges`,
     byId: (id: string) => `${API_BASE_URL}/clinical-records/discharges/${id}`,
     byDiagnoses: (id: string) => `${API_BASE_URL}/clinical-records/discharges/diagnoses/${id}`,
+    document: (id: string) => `${API_BASE_URL}/clinical-records/discharges/${id}/document`,
   },
 
   // Diagnostics (CIE-11 proxy)

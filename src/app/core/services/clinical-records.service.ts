@@ -64,6 +64,11 @@ export class AdmissionsService {
   deleteDiagnose(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.admissions.byDiagnoses(id));
   }
+
+  /** GET /clinical-records/admissions/:id/document */
+  downloadDocument(id: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.admissions.document(id), { responseType: 'blob' });
+  }
 }
 
 // ── Evolutions ────────────────────────────────────────────────────────────────
@@ -148,5 +153,10 @@ export class DischargesService {
   /** DELETE /clinical-records/discharges/diagnoses/:id */
   deleteDiagnose(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.discharges.byDiagnoses(id));
+  }
+
+  /** GET /clinical-records/discharges/:id/document */
+  downloadDocument(id: string): Observable<Blob> {
+    return this.http.get(API_ENDPOINTS.discharges.document(id), { responseType: 'blob' });
   }
 }
