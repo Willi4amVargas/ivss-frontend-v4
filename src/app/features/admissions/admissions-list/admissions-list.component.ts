@@ -51,6 +51,18 @@ import { finalize } from 'rxjs';
             <option value="all">Todas</option>
           </select>
         </div>
+        <div class="w-full sm:w-48">
+          <label for="by-user-status-filter" class="sr-only">Filtrar por usuario</label>
+          <select
+            id="by-user-status-filter"
+            [value]="byUserStatus()"
+            (change)="onByUserStatusChange($event)"
+            class="w-full rounded-lg border border-slate-200 bg-white px-3 py-2.5 text-sm text-slate-800 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+          >
+            <option value="active">Mi usuario</option>
+            <option value="all">Todos los usuarios</option>
+          </select>
+        </div>
 
         <!-- Date Filter (Local) -->
         <div class="w-full sm:w-48">
@@ -407,9 +419,11 @@ import { finalize } from 'rxjs';
               class="flex flex-col sm:flex-row items-center justify-between gap-4 border-t border-slate-100 bg-slate-50/50 px-6 py-3 mt-auto"
             >
               <p class="text-xs text-slate-500 text-center sm:text-left">
-                Mostrando página <span class="font-medium text-slate-700">{{ meta()!.page }}</span> de
+                Mostrando página
+                <span class="font-medium text-slate-700">{{ meta()!.page }}</span> de
                 <span class="font-medium text-slate-700">{{ meta()!.total_pages }}</span>
-                (<span class="font-medium text-slate-700">{{ meta()!.total_items }}</span> resultados)
+                (<span class="font-medium text-slate-700">{{ meta()!.total_items }}</span>
+                resultados)
               </p>
               <div class="flex gap-2">
                 <button
@@ -516,12 +530,13 @@ export class AdmissionsListComponent implements OnInit {
 
   readonly admissions = signal<Admission[]>([]);
   readonly meta = signal<PaginatedMeta | null>(null);
-  
+
   readonly isLoading = signal(false);
   readonly errorMsg = signal<string | null>(null);
 
   // Filters
   readonly filterStatus = signal<'active' | 'all'>('active');
+  readonly byUserStatus = signal<'active' | 'all'>('active');
   readonly filterDate = signal<string>('');
 
   // Pagination State
@@ -555,27 +570,38 @@ export class AdmissionsListComponent implements OnInit {
     this.errorMsg.set(null);
 
     const statusParam = this.filterStatus() === 'active' ? 'active' : undefined;
+    const byUserStatusParam = this.byUserStatus() === 'active' ? 'active' : undefined;
 
-    this.admissionsService.getAll({ 
-      page: this.currentPage(), 
-      limit: this.pageSize(),
-      status: statusParam
-    }).subscribe({
-      next: (response) => {
-        this.admissions.set(response.data);
-        this.meta.set(response.meta);
-        this.isLoading.set(false);
-      },
-      error: (err: Error) => {
-        this.errorMsg.set(err?.message ?? 'Error desconocido');
-        this.isLoading.set(false);
-      },
-    });
+    this.admissionsService
+      .getAll({
+        page: this.currentPage(),
+        limit: this.pageSize(),
+        status: statusParam,
+        byUser: byUserStatusParam,
+      })
+      .subscribe({
+        next: (response) => {
+          this.admissions.set(response.data);
+          this.meta.set(response.meta);
+          this.isLoading.set(false);
+        },
+        error: (err: Error) => {
+          this.errorMsg.set(err?.message ?? 'Error desconocido');
+          this.isLoading.set(false);
+        },
+      });
   }
 
   onStatusChange(event: Event): void {
     const status = (event.target as HTMLSelectElement).value as 'active' | 'all';
     this.filterStatus.set(status);
+    this.currentPage.set(1);
+    this.loadAdmissions(); // Re-fetch from API
+  }
+
+  onByUserStatusChange(event: Event): void {
+    const status = (event.target as HTMLSelectElement).value as 'active' | 'all';
+    this.byUserStatus.set(status);
     this.currentPage.set(1);
     this.loadAdmissions(); // Re-fetch from API
   }

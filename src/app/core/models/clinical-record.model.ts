@@ -58,6 +58,7 @@ export interface Evolution {
 export interface CreateEvolutionDto {
   admission_id: string;
   description: string;
+  date: Date;
 }
 
 export interface UpdateEvolutionDto {

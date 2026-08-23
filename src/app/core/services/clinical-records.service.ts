@@ -14,11 +14,12 @@ import {
   CreateDischargeDto,
   UpdateDischargeDto,
   PaginatedResponse,
-  PaginationQueryParams
+  PaginationQueryParams,
 } from '../models';
 
 export interface AdmissionQueryParams extends PaginationQueryParams {
   status?: 'active';
+  byUser?: 'active';
 }
 
 // ── Admissions ────────────────────────────────────────────────────────────────
@@ -36,8 +37,11 @@ export class AdmissionsService {
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.limit) httpParams = httpParams.set('limit', params.limit);
     if (params?.status) httpParams = httpParams.set('status', params.status);
-    
-    return this.http.get<PaginatedResponse<Admission>>(API_ENDPOINTS.admissions.base, { params: httpParams });
+    if (params?.byUser) httpParams = httpParams.set('byUser', params.byUser);
+
+    return this.http.get<PaginatedResponse<Admission>>(API_ENDPOINTS.admissions.base, {
+      params: httpParams,
+    });
   }
 
   /** GET /clinical-records/admissions/:id */
@@ -127,7 +131,9 @@ export class DischargesService {
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.limit) httpParams = httpParams.set('limit', params.limit);
 
-    return this.http.get<PaginatedResponse<Discharge>>(API_ENDPOINTS.discharges.base, { params: httpParams });
+    return this.http.get<PaginatedResponse<Discharge>>(API_ENDPOINTS.discharges.base, {
+      params: httpParams,
+    });
   }
 
   /** GET /clinical-records/discharges/:id */
@@ -149,7 +155,7 @@ export class DischargesService {
   delete(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.discharges.byId(id));
   }
-  
+
   /** DELETE /clinical-records/discharges/diagnoses/:id */
   deleteDiagnose(id: string): Observable<void> {
     return this.http.delete<void>(API_ENDPOINTS.discharges.byDiagnoses(id));
