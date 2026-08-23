@@ -133,7 +133,11 @@ import { Admission, Evolution } from '../../../core/models';
                   stroke-width="2"
                   aria-hidden="true"
                 >
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
                 </svg>
                 Descargar PDF
               }
@@ -224,14 +228,31 @@ import { Admission, Evolution } from '../../../core/models';
                 </dt>
                 <dd>
                   @if (admission()!.patient) {
-                    <a [routerLink]="['/patients', admission()!.patient_id]" class="group flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-2 transition hover:bg-blue-50 hover:border-blue-100">
-                      <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1e3a5f]/10 text-[#1e3a5f]">
-                        <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                          <path stroke-linecap="round" stroke-linejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                    <a
+                      [routerLink]="['/patients', admission()!.patient_id]"
+                      class="group flex items-center gap-3 rounded-lg border border-slate-100 bg-slate-50 p-2 transition hover:bg-blue-50 hover:border-blue-100"
+                    >
+                      <div
+                        class="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-[#1e3a5f]/10 text-[#1e3a5f]"
+                      >
+                        <svg
+                          class="h-4 w-4"
+                          fill="none"
+                          viewBox="0 0 24 24"
+                          stroke="currentColor"
+                          stroke-width="2"
+                        >
+                          <path
+                            stroke-linecap="round"
+                            stroke-linejoin="round"
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
                         </svg>
                       </div>
                       <div class="flex flex-col">
-                        <span class="text-sm font-semibold text-slate-800 group-hover:text-[#1e3a5f]">
+                        <span
+                          class="text-sm font-semibold text-slate-800 group-hover:text-[#1e3a5f]"
+                        >
                           {{ admission()!.patient.names }} {{ admission()!.patient.lastnames }}
                         </span>
                         <span class="text-xs font-mono text-slate-500">
@@ -240,7 +261,9 @@ import { Admission, Evolution } from '../../../core/models';
                       </div>
                     </a>
                   } @else {
-                    <span class="font-mono text-sm text-slate-800">{{ admission()!.patient_id }}</span>
+                    <span class="font-mono text-sm text-slate-800">{{
+                      admission()!.patient_id
+                    }}</span>
                   }
                 </dd>
               </div>
@@ -271,33 +294,112 @@ import { Admission, Evolution } from '../../../core/models';
                   } @else {
                     <span class="italic text-slate-400">Sin fecha registrada</span>
                   }
+                  <!-- Creator info row -->
+                  @if (admission()!.user || admission()!.created_at) {
+                    <div
+                      class="border-t border-slate-100 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2"
+                    >
+                      @if (admission()!.user) {
+                        <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-3.5 w-3.5 text-slate-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                          </svg>
+                          Registrado por:
+                          <strong class="text-slate-700">{{ admission()!.user!.description }}</strong>
+                        </span>
+                      }
+                      @if (admission()!.created_at) {
+                        <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-3.5 w-3.5 text-slate-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {{ admission()!.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                        </span>
+                      }
+                    </div>
+                  }
                 </dd>
               </div>
             </dl>
 
-            <!-- Creator info row -->
-            @if (admission()!.user || admission()!.created_at) {
-              <div class="border-t border-slate-100 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2">
-                @if (admission()!.user) {
-                  <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
-                    </svg>
-                    Registrado por: <strong class="text-slate-700">{{ admission()!.user!.description }}</strong>
-                  </span>
-                }
-                @if (admission()!.created_at) {
-                  <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {{ admission()!.created_at | date: 'dd/MM/yyyy HH:mm' }}
-                  </span>
-                }
-              </div>
-            }
           </section>
 
+          <!-- ─── Alta Médica / Egreso ───────────────────────────────────── -->
+          @if (admission()!.discharge) {
+            <section
+              class="rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4"
+              aria-labelledby="section-discharge"
+            >
+              <div class="flex items-center gap-3">
+                <div
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-6 w-6"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                </div>
+                <div>
+                  <h2 id="section-discharge" class="text-base font-semibold text-emerald-800">
+                    Esta admisión ya cuenta con un alta médica
+                  </h2>
+                  <p class="mt-0.5 text-sm text-emerald-600">
+                    Puedes consultar el resumen, tratamiento y diagnósticos en su respectiva ficha.
+                  </p>
+                </div>
+              </div>
+              <a
+                [routerLink]="['/discharges', admission()!.discharge!.id]"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
+              >
+                Ver Ficha de Egreso
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                >
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </a>
+            </section>
+          }
           <!-- ─── Motivo de Consulta ──────────────────────────────────────── -->
           <section
             class="rounded-xl border border-slate-200 bg-white shadow-sm"
@@ -509,39 +611,6 @@ import { Admission, Evolution } from '../../../core/models';
             </div>
           </section>
 
-          <!-- ─── Alta Médica / Egreso ───────────────────────────────────── -->
-          @if (admission()!.discharge) {
-            <section
-              class="rounded-xl border border-emerald-200 bg-emerald-50 px-6 py-5 shadow-sm flex flex-col sm:flex-row items-center justify-between gap-4"
-              aria-labelledby="section-discharge"
-            >
-              <div class="flex items-center gap-3">
-                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-600">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                </div>
-                <div>
-                  <h2 id="section-discharge" class="text-base font-semibold text-emerald-800">
-                    Esta admisión ya cuenta con un alta médica
-                  </h2>
-                  <p class="mt-0.5 text-sm text-emerald-600">
-                    Puedes consultar el resumen, tratamiento y diagnósticos en su respectiva ficha.
-                  </p>
-                </div>
-              </div>
-              <a
-                [routerLink]="['/discharges', admission()!.discharge!.id]"
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2"
-              >
-                Ver Ficha de Egreso
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </a>
-            </section>
-          }
-
           <!-- ─── Notas de Evolución ─────────────────────────────────────── -->
           <section
             class="rounded-xl border border-slate-200 bg-white shadow-sm"
@@ -614,10 +683,22 @@ import { Admission, Evolution } from '../../../core/models';
                       <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
                         <!-- Date badge -->
                         <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          <svg
+                            xmlns="http://www.w3.org/2000/svg"
+                            class="h-3.5 w-3.5 text-slate-400"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                            stroke-width="2"
+                            aria-hidden="true"
+                          >
+                            <path
+                              stroke-linecap="round"
+                              stroke-linejoin="round"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                            />
                           </svg>
-                          {{ (evo.date || evo.created_at) | date: 'dd/MM/yyyy HH:mm' }}
+                          {{ evo.date || evo.created_at | date: 'dd/MM/yyyy HH:mm' }}
                           @if (evo.updated_at && evo.updated_at !== evo.created_at) {
                             <span class="italic text-slate-400">(editado)</span>
                           }
@@ -625,8 +706,20 @@ import { Admission, Evolution } from '../../../core/models';
                         <!-- Author badge -->
                         @if (evo.user) {
                           <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                              <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <svg
+                              xmlns="http://www.w3.org/2000/svg"
+                              class="h-3.5 w-3.5 text-slate-400"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                              stroke="currentColor"
+                              stroke-width="2"
+                              aria-hidden="true"
+                            >
+                              <path
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"
+                              />
                             </svg>
                             {{ evo.user.description }}
                           </span>
@@ -982,9 +1075,9 @@ export class AdmissionDetailComponent implements OnInit, OnDestroy {
   downloadPdf(): void {
     const currentAdmission = this.admission();
     if (!currentAdmission) return;
-    
+
     this.isDownloading.set(true);
-    
+
     this.admissionsService.downloadDocument(currentAdmission.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -998,7 +1091,7 @@ export class AdmissionDetailComponent implements OnInit, OnDestroy {
       error: () => {
         console.error('Error downloading document');
         this.isDownloading.set(false);
-      }
+      },
     });
   }
 }
