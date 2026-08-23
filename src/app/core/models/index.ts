@@ -7,3 +7,4 @@ export * from './diagnosis.model';
 export * from './clinical-record.model';
 export * from './pagination.model';
 
+export * from './auth.model';

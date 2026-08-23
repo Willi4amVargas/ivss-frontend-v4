@@ -1,4 +1,5 @@
 import { Routes } from '@angular/router';
+import { authGuard, guestGuard } from './core/guards';
 
 export const routes: Routes = [
   {
@@ -7,9 +8,14 @@ export const routes: Routes = [
     pathMatch: 'full',
   },
   {
+    path: 'auth',
+    canActivate: [guestGuard],
+    loadChildren: () => import('./features/auth/auth.routes').then((m) => m.AUTH_ROUTES),
+  },
+  {
     path: '',
-    loadComponent: () =>
-      import('./layout/shell/shell.component').then((m) => m.ShellComponent),
+    canActivate: [authGuard],
+    loadComponent: () => import('./layout/shell/shell.component').then((m) => m.ShellComponent),
     children: [
       {
         path: 'dashboard',

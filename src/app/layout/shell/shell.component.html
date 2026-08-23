@@ -1,0 +1,123 @@
+<div class="flex h-screen overflow-hidden bg-slate-50">
+
+    @if (sidebarOpen()) {
+    <div class="fixed inset-0 z-20 bg-black/40 backdrop-blur-[2px] lg:hidden" (click)="closeSidebar()"
+        aria-hidden="true"></div>
+    }
+    <aside id="app-sidebar" [class]="sidebarClasses()" aria-label="Navegación principal" role="navigation">
+        <div class="flex items-start gap-3 px-5 pt-6 pb-5 border-b border-slate-700/40">
+            <!-- Hospital icon -->
+            <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+                style="background: rgba(255,255,255,0.10);">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 text-sky-300"
+                    aria-hidden="true">
+                    <path d="M3 21V7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14" />
+                    <path d="M9 21V12h6v9" />
+                    <path d="M10 8h4M12 6v4" />
+                </svg>
+            </div>
+            <!-- Hospital name & sub-label -->
+            <div class="min-w-0">
+                <p class="text-sm font-semibold leading-snug text-white truncate">
+                    Hospital Dr. P. Peñuela Ruíz
+                </p>
+                <p class="text-[10.5px] font-medium tracking-wide mt-0.5 truncate"
+                    style="color: rgba(125,211,252,0.80);">
+                    Medicina Interna — IVSS
+                </p>
+            </div>
+        </div>
+
+        <!-- ── Navigation links ── -->
+        <nav class="flex-1 px-3 py-4 space-y-0.5 overflow-y-auto" aria-label="Secciones del sistema">
+            @for (item of navItems; track item.route) {
+            <a [routerLink]="item.route" routerLinkActive="nav-link--active"
+                [routerLinkActiveOptions]="{ exact: item.route === '/dashboard' }"
+                class="nav-link group relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-150 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-400"
+                style="color: rgb(203,213,225);" (click)="closeSidebar()"
+                [attr.aria-current]="isActive(item.route) ? 'page' : null">
+                <!-- Icon wrapper -->
+                <span class="flex-shrink-0 w-5 h-5 transition-colors duration-150" aria-hidden="true">
+                    <svg xmlns="http://www.w3.org/2000/svg" [attr.viewBox]="item.viewBox ?? '0 0 24 24'" fill="none"
+                        stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"
+                        class="w-full h-full">
+                        @for (p of item.iconPaths; track $index) {
+                        <path [attr.d]="p" />
+                        }
+                    </svg>
+                </span>
+                {{ item.label }}
+            </a>
+            }
+        </nav>
+    </aside>
+
+    <div class="flex flex-1 flex-col min-w-0 overflow-hidden">
+
+        <header class="flex-shrink-0 flex items-center gap-4 h-14 px-4 bg-white border-b border-slate-200 shadow-sm"
+            role="banner">
+            <!-- Hamburger button (mobile) -->
+            <button type="button"
+                class="lg:hidden -ml-1 p-2 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-100 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sky-500 transition-colors"
+                (click)="toggleSidebar()" [attr.aria-expanded]="sidebarOpen()" aria-controls="app-sidebar"
+                aria-label="Abrir menú de navegación">
+                @if (sidebarOpen()) {
+                <!-- X / close icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                </svg>
+                } @else {
+                <!-- Hamburger icon -->
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5" aria-hidden="true">
+                    <path d="M4 6h16M4 12h16M4 18h16" />
+                </svg>
+                }
+            </button>
+
+            <!-- Page title -->
+            <div class="flex justify-between w-full">
+                <div class="flex flex-col min-w-0">
+                    <h1 class="text-base font-semibold text-slate-800 truncate leading-tight">
+                        {{ pageTitle() }}
+                    </h1>
+                    <p class="hidden sm:block text-[10.5px] text-slate-400 truncate leading-tight">
+                        Hospital Dr. Patrocinio Peñuela Ruíz — Medicina Interna
+                    </p>
+                </div>
+
+                <!-- User Menu -->
+                <div class="flex items-center gap-3 border-l border-slate-200 pl-4">
+                    @if (currentUser()) {
+                    <div class="hidden sm:flex flex-col text-right">
+                        <span class="text-sm font-semibold text-slate-700 leading-tight">
+                            {{ currentUser()!.description }}
+                        </span>
+                        <span class="text-xs text-slate-500 leading-tight">Administrador</span>
+                    </div>
+                    }
+                    <!-- Logout button -->
+                    <button type="button" (click)="logout()"
+                        class="p-2 rounded-lg text-slate-500 hover:text-red-600 hover:bg-red-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-red-500 transition-colors"
+                        aria-label="Cerrar sesión" title="Cerrar sesión">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
+                            <polyline points="16 17 21 12 16 7" />
+                            <line x1="21" y1="12" x2="9" y2="12" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+        <!-- ── Page content (RouterOutlet) ── -->
+        <main id="main-content" class="flex-1 overflow-y-auto overflow-x-hidden" tabindex="-1">
+            <div class="px-4 py-6 sm:px-6 lg:px-8 max-w-screen-xl mx-auto">
+                <router-outlet />
+            </div>
+        </main>
+    </div>
+
+</div>

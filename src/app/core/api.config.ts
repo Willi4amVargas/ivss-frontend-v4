@@ -17,6 +17,14 @@ export const API_ENDPOINTS = {
     deleteHistory: (id: string, history: string) => `${API_BASE_URL}/patients/history/${id}/${history}`,
   },
 
+  // Autenticación
+  auth: {
+    me: `${API_BASE_URL}/auth/me`,
+    signin: `${API_BASE_URL}/auth/signin`,
+    signup: `${API_BASE_URL}/auth/signup`,
+    recovery: `${API_BASE_URL}/auth/recovery`,
+  },
+
   // Clinical Records
   admissions: {
     base: `${API_BASE_URL}/clinical-records/admissions`,
