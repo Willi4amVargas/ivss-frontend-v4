@@ -10,18 +10,10 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
   imports: [RouterLink, DatePipe],
   template: `
     <div class="px-4 py-6 sm:px-6 max-w-6xl mx-auto animate-fade-in">
-      <!-- Back nav -->
-      <a routerLink="/discharges" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-        Volver a Egresos
-      </a>
-
       <!-- Loading -->
       @if (loading()) {
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 space-y-4">
-          @for (n of [1,2,3,4,5]; track n) {
+          @for (n of [1, 2, 3, 4, 5]; track n) {
             <div class="h-5 skeleton rounded w-3/4"></div>
           }
         </div>
@@ -29,9 +21,23 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
 
       <!-- Error -->
       @if (error()) {
-        <div role="alert" class="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-          <svg class="w-4 h-4 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+        <div
+          role="alert"
+          class="flex items-center gap-3 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700"
+        >
+          <svg
+            class="w-4 h-4 shrink-0"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            aria-hidden="true"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M12 9v4m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"
+            />
           </svg>
           {{ error() }}
         </div>
@@ -39,6 +45,97 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
 
       <!-- Content -->
       @if (discharge(); as d) {
+        <div class="mb-8 flex flex-wrap items-start justify-between gap-4">
+          <div class="flex items-center gap-4">
+            <a
+              routerLink="/discharges"
+              class="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#1e3a5f]"
+              aria-label="Volver a la lista de admisiones"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7" />
+              </svg>
+              Volver
+            </a>
+          </div>
+          <!-- Action buttons -->
+          <div class="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              (click)="downloadPdf()"
+              [disabled]="isDownloading()"
+              class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-medium text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
+            >
+              @if (isDownloading()) {
+                <svg
+                  class="h-4 w-4 animate-spin"
+                  xmlns="http://www.w3.org/2000/svg"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  aria-hidden="true"
+                >
+                  <circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  />
+                  <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+                </svg>
+                Descargando...
+              } @else {
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4 text-slate-500"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"
+                  />
+                </svg>
+                Descargar PDF
+              }
+            </button>
+            <a
+              [routerLink]="['/discharges', d.id, 'edit']"
+              class="inline-flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-4 py-2.5 text-sm font-medium text-amber-700 transition hover:bg-amber-100 focus:outline-none focus:ring-2 focus:ring-amber-400"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                />
+              </svg>
+              Editar Egreso
+            </a>
+          </div>
+        </div>
+
         <!-- Header card -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-5">
           <div class="flex items-start justify-between gap-4 mb-4">
@@ -48,17 +145,23 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             </div>
             <!-- Status badge -->
             @if (d.morbility_status === true) {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-semibold shrink-0">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-red-100 text-red-700 text-sm font-semibold shrink-0"
+              >
                 <span class="w-2 h-2 rounded-full bg-red-500" aria-hidden="true"></span>
                 Fallecido
               </span>
             } @else if (d.morbility_status === false) {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold shrink-0">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold shrink-0"
+              >
                 <span class="w-2 h-2 rounded-full bg-emerald-500" aria-hidden="true"></span>
                 Alta Médica
               </span>
             } @else {
-              <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-sm font-medium shrink-0">
+              <span
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-100 text-slate-500 text-sm font-medium shrink-0"
+              >
                 N/A
               </span>
             }
@@ -66,24 +169,39 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
 
           <dl class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
             <div>
-              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Admisión Asociada</dt>
+              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Admisión Asociada
+              </dt>
               <dd class="mt-1.5">
                 <a
                   [routerLink]="['/admissions', d.admission_id]"
                   class="inline-flex items-center gap-1.5 rounded-lg bg-blue-50 px-3 py-1.5 text-sm font-medium text-blue-700 transition hover:bg-blue-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1"
                 >
                   Ver Ficha de Admisión
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3.5 w-3.5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"
+                    />
                   </svg>
                 </a>
               </dd>
             </div>
             <div>
-              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Fecha de Egreso</dt>
+              <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                Fecha de Egreso
+              </dt>
               <dd class="mt-0.5 text-sm text-slate-700">
                 @if (d.discharge_date) {
-                  {{ d.discharge_date | date:'dd/MM/yyyy, HH:mm' }}
+                  {{ d.discharge_date | date: 'dd/MM/yyyy, HH:mm' }}
                 } @else {
                   <span class="text-slate-400 italic">No especificada</span>
                 }
@@ -91,14 +209,30 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             </div>
             @if (d.user) {
               <div>
-                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Registrado por</dt>
+                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">
+                  Registrado por
+                </dt>
                 <dd class="mt-0.5 flex items-center gap-1.5 text-sm text-slate-700">
-                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4 text-slate-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    aria-hidden="true"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
                   </svg>
                   <span class="font-medium">{{ d.user.description }}</span>
                   @if (d.created_at) {
-                    <span class="text-xs text-slate-400">&mdash; {{ d.created_at | date: 'dd/MM/yyyy' }}</span>
+                    <span class="text-xs text-slate-400"
+                      >&mdash; {{ d.created_at | date: 'dd/MM/yyyy' }}</span
+                    >
                   }
                 </dd>
               </div>
@@ -110,44 +244,96 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
           <!-- Examen físico -->
           <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-            <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+            <h2
+              class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                stroke-width="2"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
+                />
               </svg>
               Examen Físico de Egreso
             </h2>
-            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.discharge_exam }}</p>
+            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+              {{ d.discharge_exam }}
+            </p>
           </div>
 
           <!-- Plan terapéutico -->
           @if (d.treatment_plan) {
             <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
-              <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2">
-                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <h2
+                class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
                 </svg>
                 Plan Terapéutico Post-Hospitalización
               </h2>
-              <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.treatment_plan }}</p>
+              <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">
+                {{ d.treatment_plan }}
+              </p>
             </div>
           }
         </div>
 
         <!-- Diagnósticos -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-4 flex items-center gap-2">
-            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+          <h2
+            class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-4 flex items-center gap-2"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              class="h-4 w-4"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+              stroke-width="2"
+              aria-hidden="true"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
             </svg>
             Diagnósticos Definitivos
-            <span class="ml-auto rounded-full bg-[#1e3a5f]/10 px-2 py-0.5 text-xs font-semibold text-[#1e3a5f]">
+            <span
+              class="ml-auto rounded-full bg-[#1e3a5f]/10 px-2 py-0.5 text-xs font-semibold text-[#1e3a5f]"
+            >
               {{ d.discharges_diagnosis.length }}
             </span>
           </h2>
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @for (diag of d.discharges_diagnosis; track diag.id) {
-              <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
-                <span class="inline-flex shrink-0 px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-semibold mt-0.5">
+              <div
+                class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200"
+              >
+                <span
+                  class="inline-flex shrink-0 px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-semibold mt-0.5"
+                >
                   {{ diag.code }}
                 </span>
                 <div class="flex-1 min-w-0">
@@ -162,44 +348,6 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
               <p class="text-sm italic text-slate-400 col-span-2">Sin diagnósticos registrados.</p>
             }
           </div>
-        </div>
-
-        <!-- Actions -->
-        <div class="flex items-center gap-3">
-          <a
-            routerLink="/discharges"
-            class="px-4 py-2 rounded-lg border border-slate-300 text-sm font-medium text-slate-700 hover:bg-slate-50 transition-colors"
-          >
-            Volver
-          </a>
-          <button
-            type="button"
-            (click)="downloadPdf()"
-            [disabled]="isDownloading()"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
-          >
-            @if (isDownloading()) {
-              <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
-                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-              </svg>
-              Descargando...
-            } @else {
-              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-              </svg>
-              Descargar PDF
-            }
-          </button>
-          <a
-            [routerLink]="['/discharges', d.id, 'edit']"
-            class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-[#1e3a5f] text-white text-sm font-medium hover:bg-[#16304f] transition-colors"
-          >
-            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-            </svg>
-            Editar Egreso
-          </a>
         </div>
       }
     </div>
@@ -236,9 +384,9 @@ export class DischargeDetailComponent implements OnInit {
   downloadPdf(): void {
     const currentDischarge = this.discharge();
     if (!currentDischarge) return;
-    
+
     this.isDownloading.set(true);
-    
+
     this.svc.downloadDocument(currentDischarge.id).subscribe({
       next: (blob) => {
         const url = window.URL.createObjectURL(blob);
@@ -252,7 +400,7 @@ export class DischargeDetailComponent implements OnInit {
       error: () => {
         console.error('Error downloading document');
         this.isDownloading.set(false);
-      }
+      },
     });
   }
 }
