@@ -9,9 +9,9 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
   selector: 'app-discharge-detail',
   imports: [RouterLink, DatePipe],
   template: `
-    <div class="p-6 max-w-3xl mx-auto animate-fade-in">
+    <div class="px-4 py-6 sm:px-6 max-w-6xl mx-auto animate-fade-in">
       <!-- Back nav -->
-      <a routerLink="/discharges" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-4 transition-colors">
+      <a routerLink="/discharges" class="inline-flex items-center gap-1.5 text-sm text-slate-500 hover:text-slate-700 mb-6 transition-colors">
         <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
         </svg>
@@ -40,7 +40,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
       <!-- Content -->
       @if (discharge(); as d) {
         <!-- Header card -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-4">
+        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-5">
           <div class="flex items-start justify-between gap-4 mb-4">
             <div>
               <h1 class="text-xl font-semibold text-slate-800">Egreso Médico</h1>
@@ -64,7 +64,7 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             }
           </div>
 
-          <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
+          <dl class="grid grid-cols-1 sm:grid-cols-3 gap-x-6 gap-y-4">
             <div>
               <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Admisión Asociada</dt>
               <dd class="mt-1.5">
@@ -89,29 +89,62 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                 }
               </dd>
             </div>
+            @if (d.user) {
+              <div>
+                <dt class="text-xs font-medium text-slate-500 uppercase tracking-wide">Registrado por</dt>
+                <dd class="mt-0.5 flex items-center gap-1.5 text-sm text-slate-700">
+                  <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                  </svg>
+                  <span class="font-medium">{{ d.user.description }}</span>
+                  @if (d.created_at) {
+                    <span class="text-xs text-slate-400">&mdash; {{ d.created_at | date: 'dd/MM/yyyy' }}</span>
+                  }
+                </dd>
+              </div>
+            }
           </dl>
         </div>
 
-        <!-- Examen físico -->
-        <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-4">
-          <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Examen Físico de Egreso</h2>
-          <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.discharge_exam }}</p>
-        </div>
-
-        <!-- Plan terapéutico -->
-        @if (d.treatment_plan) {
-          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-4">
-            <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">Plan Terapéutico Post-Hospitalización</h2>
-            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.treatment_plan }}</p>
+        <!-- Two-column grid for main content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
+          <!-- Examen físico -->
+          <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+            <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2">
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+              </svg>
+              Examen Físico de Egreso
+            </h2>
+            <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.discharge_exam }}</p>
           </div>
-        }
+
+          <!-- Plan terapéutico -->
+          @if (d.treatment_plan) {
+            <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6">
+              <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-3 flex items-center gap-2">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                Plan Terapéutico Post-Hospitalización
+              </h2>
+              <p class="text-sm text-slate-700 leading-relaxed whitespace-pre-line">{{ d.treatment_plan }}</p>
+            </div>
+          }
+        </div>
 
         <!-- Diagnósticos -->
         <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
-          <h2 class="text-sm font-semibold text-slate-600 uppercase tracking-wide mb-3">
+          <h2 class="text-sm font-semibold text-[#1e3a5f] uppercase tracking-wide mb-4 flex items-center gap-2">
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            </svg>
             Diagnósticos Definitivos
+            <span class="ml-auto rounded-full bg-[#1e3a5f]/10 px-2 py-0.5 text-xs font-semibold text-[#1e3a5f]">
+              {{ d.discharges_diagnosis.length }}
+            </span>
           </h2>
-          <div class="space-y-2">
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             @for (diag of d.discharges_diagnosis; track diag.id) {
               <div class="flex items-start gap-3 p-3 rounded-lg bg-slate-50 border border-slate-200">
                 <span class="inline-flex shrink-0 px-2 py-0.5 rounded bg-blue-100 text-blue-700 font-mono text-xs font-semibold mt-0.5">
@@ -124,6 +157,9 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
                   }
                 </div>
               </div>
+            }
+            @if (d.discharges_diagnosis.length === 0) {
+              <p class="text-sm italic text-slate-400 col-span-2">Sin diagnósticos registrados.</p>
             }
           </div>
         </div>
@@ -143,34 +179,13 @@ import { ApiError } from '../../../core/interceptors/error.interceptor';
             class="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium text-slate-700 shadow-sm transition-colors hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-slate-500 disabled:opacity-50"
           >
             @if (isDownloading()) {
-              <svg
-                class="h-4 w-4 animate-spin"
-                xmlns="http://www.w3.org/2000/svg"
-                fill="none"
-                viewBox="0 0 24 24"
-                aria-hidden="true"
-              >
-                <circle
-                  class="opacity-25"
-                  cx="12"
-                  cy="12"
-                  r="10"
-                  stroke="currentColor"
-                  stroke-width="4"
-                />
+              <svg class="h-4 w-4 animate-spin" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
               </svg>
               Descargando...
             } @else {
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4 text-slate-500"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                stroke-width="2"
-                aria-hidden="true"
-              >
+              <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
               </svg>
               Descargar PDF

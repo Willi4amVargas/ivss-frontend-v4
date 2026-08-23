@@ -274,6 +274,28 @@ import { Admission, Evolution } from '../../../core/models';
                 </dd>
               </div>
             </dl>
+
+            <!-- Creator info row -->
+            @if (admission()!.user || admission()!.created_at) {
+              <div class="border-t border-slate-100 px-6 py-4 flex flex-wrap items-center gap-x-6 gap-y-2">
+                @if (admission()!.user) {
+                  <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
+                    Registrado por: <strong class="text-slate-700">{{ admission()!.user!.description }}</strong>
+                  </span>
+                }
+                @if (admission()!.created_at) {
+                  <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                      <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {{ admission()!.created_at | date: 'dd/MM/yyyy HH:mm' }}
+                  </span>
+                }
+              </div>
+            }
           </section>
 
           <!-- ─── Motivo de Consulta ──────────────────────────────────────── -->
@@ -589,25 +611,25 @@ import { Admission, Evolution } from '../../../core/models';
                     "
                   >
                     <div class="mb-3 flex items-start justify-between gap-3">
-                      <div class="flex items-center gap-2 text-xs text-slate-400">
-                        <svg
-                          xmlns="http://www.w3.org/2000/svg"
-                          class="h-3.5 w-3.5"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                          stroke="currentColor"
-                          stroke-width="2"
-                          aria-hidden="true"
-                        >
-                          <path
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                            d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                          />
-                        </svg>
-                        {{ evo.created_at | date: 'dd/MM/yyyy HH:mm' }}
-                        @if (evo.updated_at && evo.updated_at !== evo.created_at) {
-                          <span class="italic">(editado)</span>
+                      <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
+                        <!-- Date badge -->
+                        <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                          <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          {{ (evo.date || evo.created_at) | date: 'dd/MM/yyyy HH:mm' }}
+                          @if (evo.updated_at && evo.updated_at !== evo.created_at) {
+                            <span class="italic text-slate-400">(editado)</span>
+                          }
+                        </span>
+                        <!-- Author badge -->
+                        @if (evo.user) {
+                          <span class="inline-flex items-center gap-1.5 text-xs text-slate-500">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                              <path stroke-linecap="round" stroke-linejoin="round" d="M5.121 17.804A13.937 13.937 0 0112 16c2.5 0 4.847.655 6.879 1.804M15 10a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            {{ evo.user.description }}
+                          </span>
                         }
                       </div>
                       <div class="flex items-center gap-1">
