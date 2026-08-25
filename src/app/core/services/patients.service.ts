@@ -3,7 +3,13 @@ import { inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { Service } from '@angular/core';
 import { API_ENDPOINTS } from '../api.config';
-import { Patient, CreatePatientDto, UpdatePatientDto, PaginatedResponse, PaginationQueryParams } from '../models';
+import {
+  Patient,
+  CreatePatientDto,
+  UpdatePatientDto,
+  PaginatedResponse,
+  PaginationQueryParams,
+} from '../models';
 
 export interface PatientSearchQueryParams extends PaginationQueryParams {
   q: string;
@@ -22,20 +28,24 @@ export class PatientsService {
     let httpParams = new HttpParams();
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.limit) httpParams = httpParams.set('limit', params.limit);
-    
-    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.base, { params: httpParams });
+    if (params?.scope) httpParams = httpParams.set('scope', params.scope);
+
+    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.base, {
+      params: httpParams,
+    });
   }
 
   /** GET /patients/search — Search patients by document_id, name, or history_number (Paginated) */
   search(params: PatientSearchQueryParams): Observable<PaginatedResponse<Patient>> {
-    let httpParams = new HttpParams()
-      .set('q', params.q)
-      .set('type', params.type);
-      
+    let httpParams = new HttpParams().set('q', params.q).set('type', params.type);
+
     if (params.page) httpParams = httpParams.set('page', params.page);
     if (params.limit) httpParams = httpParams.set('limit', params.limit);
-    
-    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.search, { params: httpParams });
+    if (params.scope) httpParams = httpParams.set('scope', params.scope);
+
+    return this.http.get<PaginatedResponse<Patient>>(API_ENDPOINTS.patients.search, {
+      params: httpParams,
+    });
   }
 
   /** GET /patients/:id — Get patient by internal UUID (includes clinical records) */

@@ -1,6 +1,12 @@
+export enum Scope {
+  ME = 'me',
+  ALL = 'all',
+}
+
 export interface PaginationQueryParams {
   page?: number;
   limit?: number;
+  scope?: Scope;
 }
 
 export interface PaginatedMeta {

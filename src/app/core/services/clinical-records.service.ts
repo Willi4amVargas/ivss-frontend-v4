@@ -19,7 +19,6 @@ import {
 
 export interface AdmissionQueryParams extends PaginationQueryParams {
   status?: 'active';
-  byUser?: 'active';
 }
 
 // ── Admissions ────────────────────────────────────────────────────────────────
@@ -37,7 +36,7 @@ export class AdmissionsService {
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.limit) httpParams = httpParams.set('limit', params.limit);
     if (params?.status) httpParams = httpParams.set('status', params.status);
-    if (params?.byUser) httpParams = httpParams.set('byUser', params.byUser);
+    if (params?.scope) httpParams = httpParams.set('scope', params.scope);
 
     return this.http.get<PaginatedResponse<Admission>>(API_ENDPOINTS.admissions.base, {
       params: httpParams,
@@ -130,6 +129,7 @@ export class DischargesService {
     let httpParams = new HttpParams();
     if (params?.page) httpParams = httpParams.set('page', params.page);
     if (params?.limit) httpParams = httpParams.set('limit', params.limit);
+    if (params?.scope) httpParams = httpParams.set('scope', params.scope);
 
     return this.http.get<PaginatedResponse<Discharge>>(API_ENDPOINTS.discharges.base, {
       params: httpParams,
